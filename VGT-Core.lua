@@ -8,7 +8,7 @@ VGT.debug = false
 -- ##### HELPERS ##############################################
 -- ############################################################
 
-function Log(str, debug)
+LOG = function(str, debug)
 	if (debug == true) then
 		if (VGT.debug == true) then
 			print(str)
@@ -130,7 +130,7 @@ function CheckGroupForGuildies()
 		if (IsInMyGuild(groupMember)) then
 			guildGroupMembers[p] = groupMember
 			p = p + 1
-			Log(format("[%s] %s is in my guild", ADDON_NAME, groupMember), true)
+			LOG(format("[%s] %s is in my guild", ADDON_NAME, groupMember), true)
 		end
 	end
 	return guildGroupMembers
@@ -141,22 +141,24 @@ end
 -- ############################################################
 
 SLASH_VGT1 = "/vgt"
-SlashCmdList["VGT"] = function(msg)
-	if (msg == "debug") then
+SlashCmdList["VGT"] = function(message)
+	local command, arg1, arg2 = strsplit(" ", message)
+
+	if (command == "debug") then
 		VGT.debug = not VGT.debug
-		Log(format("[%s] debug mode toggled (value=%s)", ADDON_NAME, tostring(VGT.debug)))
+		LOG(format("[%s] debug mode toggled (value=%s)", ADDON_NAME, tostring(VGT.debug)))
 		return
 	end
-	if (msg == "eptest") then
+	if (command == "eptest") then
 		HandleUnitDeath("TEST"..RandomUUID(), "TestDungeon", "TestBoss")
 		return
 	end
-	if (msg == "epprint") then
-		PrintEPList(false)
+	if (command == "dungeons") then
+		PrintDungeonList(tonumber(arg1), VGT.debug)
 		return
 	end
-	Log(format("[%s] Command List:", ADDON_NAME))
-	Log(format("%s - %s", "/vgt debug", "enables debug mode"))
-	Log(format("%s - %s", "/vgt eptest", "sends an EP test event"))
-	Log(format("%s - %s", "/vgt epprint", "prints the list of EP award candidates"))
+	LOG(format("[%s] Command List:", ADDON_NAME))
+	LOG(format("%s - %s", "/vgt debug", "enables debug mode"))
+	LOG(format("%s - %s", "/vgt eptest", "sends an EP test event"))
+	LOG(format("%s - %s", "/vgt dungeons <timeframe>", "prints the list of EP award candidates based on dungeon activity"))
 end

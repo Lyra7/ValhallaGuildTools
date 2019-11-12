@@ -1,29 +1,56 @@
 local MODULE_NAME = "VGT-EP"
 local MY_EPDB = {}
 
-function PrintEPList(test)
+-- Create a list of unique players sorted alphabetically that were found in the EPDB
+--	timeframeInDays: default 7, controls how long ago to look for records in the EPDB
+-- 	includeTests: true/false controls whether or not test records are included
+local function ConstructPlayerTableFromHistory(timeframeInDays, includeTests)
+	if (timeframeInDays == nil or timeframeInDays <= 0) then
+		timeframeInDays = 7
+	end
+	local timeframeInSeconds = timeframeInDays * 86400
+	local currentTime = GetServerTime()
 	local playersTable = {}
-	for k,v in pairs(VGT_EPDB) do
-		local _, uid, _, players = strsplit(":", k)
-		if (uid ~= nil and string.match(uid, "TEST")) then
-			if (test == true) then
-				playersTable = TableJoinToArray(playersTable, {strsplit(",", players)})
+
+	-- Loop through each record in the EPDB
+	for key,value in pairs(VGT_EPDB) do
+		local timestamp, _, _ = strsplit(":", value)
+
+		-- Ignore records that are past the timeframe
+		if (timestamp + timeframeInSeconds > currentTime) then
+			local _, uid, guild, players = strsplit(":", key)
+			local myGuildName = GetMyGuildName()
+
+			-- Ignore records that don't match the player's guild name
+			if (myGuildName ~= nil and myGuildName == guild) then
+
+				-- Ignore records which don't have a valid uid
+				if (uid ~= nil and string.match(uid, "TEST")) then
+
+					-- Ignore test records if the flag is true
+					if (includeTests == true) then
+						playersTable = TableJoinToArray(playersTable, {strsplit(",", players)})
+					end
+				else
+					playersTable = TableJoinToArray(playersTable, {strsplit(",", players)})
+				end
 			end
-		else
-			playersTable = TableJoinToArray(playersTable, {strsplit(",", players)})
 		end
 	end
-	local playersTableStr = TableToString(playersTable, ",", true)
-	Log(format("[%s] %s", MODULE_NAME, playersTableStr))
+	return playersTable
+end
+
+function PrintDungeonList(timeframeInDays, includeTests)
+	LOG(format("[%s] %s", MODULE_NAME, TableToString(ConstructPlayerTableFromHistory(timeframeInDays, includeTests), ",", true)))
 end
 
 local function CheckLocalDBForBossKill(key, value)
 	if (MY_EPDB[key] == nil) then
 		MY_EPDB[key] = value
 	else
-		Log(format("[%s] !! YOUR KILL WAS NOT RECORDED !!", MODULE_NAME))
-		Log(format("[%s] ERROR - record %s already exists in local DB. Contact an officer for assistance.", MODULE_NAME, key))
-		Log(format("[%s] !! YOUR KILL WAS NOT RECORDED !!", MODULE_NAME))
+		LOG(format("[%s] !! YOUR KILL WAS NOT RECORDED !!", MODULE_NAME))
+		LOG(format("[%s] ERROR - record %s already exists in local DB. Contact an officer for assistance.", MODULE_NAME, key))
+		LOG(format("[%s] !! YOUR KILL WAS NOT RECORDED !!", MODULE_NAME))
 	end
 end
 
@@ -32,23 +59,23 @@ local function SaveAndSendBossKill(key, value)
 	if (record == nil or record == "") then
 		VGT_EPDB[key] = value
 		local message = format("%s;%s", key, value)
-		Log(format("[%s] saving %s and sending to guild.", MODULE_NAME, message), true)
+		LOG(format("[%s] saving %s and sending to guild.", MODULE_NAME, message), true)
 		ACE:SendCommMessage(MODULE_NAME, message, "GUILD")
 	else
-		Log(format("[%s] record %s already exists in DB before it could be saved.", MODULE_NAME, message), true)
+		LOG(format("[%s] record %s already exists in DB before it could be saved.", MODULE_NAME, message), true)
 	end
 end
 
 function HandleUnitDeath(creatureUID, dungeonName, bossName)
 	local timestamp = GetServerTime()
-	Log(format("[%s] killed %s in %s.", MODULE_NAME, bossName, dungeonName), true)
+	LOG(format("[%s] killed %s in %s.", MODULE_NAME, bossName, dungeonName), true)
 	local guildName = GetGuildInfo("player")
 	local groupedGuildies = CheckGroupForGuildies()
 	if (guildName ~= nil and next(groupedGuildies) ~= nil) then
 		local playerName = UnitName("player")
 		table.insert(groupedGuildies, playerName)
 		local groupedGuildiesStr = TableToString(groupedGuildies, ",", true)
-		Log(format("[%s] killed %s in %s as a guild with %s", MODULE_NAME, bossName, dungeonName, groupedGuildiesStr))
+		LOG(format("[%s] killed %s in %s as a guild with %s", MODULE_NAME, bossName, dungeonName, groupedGuildiesStr))
 		local key = format("%s:%s:%s:%s", MODULE_NAME, creatureUID, guildName, groupedGuildiesStr)
 		local value = format("%s:%s:%s", timestamp, dungeonName, bossName)
 		CheckLocalDBForBossKill(key, value)
@@ -82,7 +109,7 @@ local function HandleCombatLogEvent(event)
 	end
 end
 
-local function OnCommReceived(prefix, message, distribution, sender)
+local function HandleMessageReceivedEvent(prefix, message, distribution, sender)
 	if (prefix ~= MODULE_NAME) then
 		return
 	end
@@ -103,7 +130,7 @@ local function OnCommReceived(prefix, message, distribution, sender)
 			local guildName = GetMyGuildName()
 			if (guildName ~= nil and guildName == guildNameFromHistory) then
 				local message = format("%s;%s", k, v)
-				Log(format("[%s] sending %s to %s for SYNCHRONIZATION_REQUEST.", MODULE_NAME, message, sender), true)
+				LOG(format("[%s] sending %s to %s for SYNCHRONIZATION_REQUEST.", MODULE_NAME, message, sender), true)
 				ACE:SendCommMessage(MODULE_NAME, message, "WHISPER", sender, "BULK")
 			end
 		end
@@ -111,10 +138,10 @@ local function OnCommReceived(prefix, message, distribution, sender)
 		local key, value = strsplit(";", message)
 		local record = VGT_EPDB[key]
 		if (record == nil or record == "") then
-			Log(format("[%s] saving record %s from %s.", MODULE_NAME, message, sender), true)
+			LOG(format("[%s] saving record %s from %s.", MODULE_NAME, message, sender), true)
 			VGT_EPDB[key] = value
 		else
-			Log(format("[%s] record %s from %s already exists in DB.", MODULE_NAME, message, sender), true)
+			LOG(format("[%s] record %s from %s already exists in DB.", MODULE_NAME, message, sender), true)
 		end
 	end
 end
@@ -126,7 +153,7 @@ local function OnEvent(self, event, arg1, arg2, arg3)
 		if (VGT_EPDB == nil) then
 			VGT_EPDB = {}
 		end
-		ACE:RegisterComm(MODULE_NAME, OnCommReceived)
+		ACE:RegisterComm(MODULE_NAME, HandleMessageReceivedEvent)
 		ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST", "GUILD")
 	end
 
