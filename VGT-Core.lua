@@ -1,27 +1,17 @@
 ADDON_NAME, VGT = ...
-ACE = LibStub("AceAddon-3.0"):NewAddon(ADDON_NAME, "AceComm-3.0")
 VERSION = GetAddOnMetadata(ADDON_NAME, "Version")
 FRAME = CreateFrame("Frame")
-VGT.debug = false
+ACE = LibStub("AceAddon-3.0"):NewAddon(ADDON_NAME, "AceComm-3.0")
+local MODULE_NAME = "VGT-Core"
 
 -- ############################################################
 -- ##### HELPERS ##############################################
 -- ############################################################
 
-LOG = function(str, debug)
-	if (debug == true) then
-		if (VGT.debug == true) then
-			print(str)
-		end
-	else
-		print(str)
-	end
-end
-
 function StringAppend(...)
 	local args = {...}
 	local str = ""
-	for k,v in ipairs(args) do
+	for _,v in ipairs(args) do
 		if (v ~= nil) then
 			str = str..tostring(v)
 		end
@@ -31,10 +21,10 @@ end
 
 function TableJoinToArray(a, b)
 	local nt = {}
-	for k,v in pairs(a) do
+	for _,v in pairs(a) do
 		nt[v] = v
 	end
-	for k,v in pairs(b) do
+	for _,v in pairs(b) do
 		nt[v] = v
 	end
 	return nt
@@ -54,15 +44,15 @@ function TableToString(t, d, sort)
 	if (sort == true) then
 		table.sort(t)
 		local nt = {}
-    for k,v in pairs(t) do
-        table.insert(nt, v)
-    end
+		for _,v in pairs(t) do
+			table.insert(nt, v)
+		end
 		table.sort(nt)
 		t = nt
 	end
 
-	for k,v in pairs(t) do
-			s = s..","..v
+	for _,v in pairs(t) do
+		s = s..","..v
 	end
 
 	return string.sub(s, 2)
@@ -73,7 +63,7 @@ function TableContains(t, m)
 		return false
 	end
 
-	for k,v in pairs(t) do
+	for _,v in pairs(t) do
 		if (v == m) then
 			return true
 		end
@@ -129,12 +119,91 @@ function CheckGroupForGuildies()
 		local groupMember = groupMembers[i]
 		if (IsInMyGuild(groupMember)) then
 			guildGroupMembers[p] = groupMember
+			Log(LOG_LEVEL.DEBUG, "%s is in my guild", guildGroupMembers[p])
 			p = p + 1
-			LOG(format("[%s] %s is in my guild", ADDON_NAME, groupMember), true)
 		end
 	end
 	return guildGroupMembers
 end
+
+function PrintAbout()
+	Log(LOG_LEVEL.SYSTEM, "installed version: %s", VERSION)
+end
+
+function PrintHelp()
+	Log(LOG_LEVEL.SYSTEM, "Command List:")
+	Log(LOG_LEVEL.SYSTEM, "/vgt about - version information")
+	Log(LOG_LEVEL.SYSTEM, "/vgt loglevel <%s> - set the addon verbosity (%s)", TableToString(LOG_LEVELS, "|"), LOG_LEVELS[logLevel])
+	Log(LOG_LEVEL.SYSTEM, "/vgt dungeontest - sends a dungeon kill test event")
+	Log(LOG_LEVEL.SYSTEM, "/vgt dungeons [timeframeInDays:7] - list of players that killed a dungeon boss within the timeframe")
+end
+
+local hasNotifiedNewVersion = false
+function HandleCoreMessageReceivedEvent(prefix, message, _, sender)
+	if (prefix ~= MODULE_NAME) then
+		return
+	end
+
+	local module, event = strsplit(":", message)
+	if (module ~= MODULE_NAME) then
+		return
+	end
+
+	local playerName = UnitName("player")
+	if (sender == playerName) then
+		return
+	end
+
+	if (event == "SYNCHRONIZATION_REQUEST") then
+		local message = VERSION
+		Log(LOG_LEVEL.TRACE, "sending %s to %s for %s:SYNCHRONIZATION_REQUEST.", message, sender, MODULE_NAME)
+		ACE:SendCommMessage(MODULE_NAME, message, "WHISPER", sender, "ALERT")
+	else
+		local version = tonumber(message)
+		local myVersion = tonumber(VERSION)
+		if (hasNotifiedNewVersion == false and addonVersion > tonumber(VERSION)) then
+			hasNotifiedNewVersion = true
+			Log(LOG_LEVEL.WARN, "there is a newer version of this addon [%s]", version)
+		end
+	end
+end
+
+local initialized = false
+local function OnEvent(_, event)
+	if (not initialized and event == "ADDON_LOADED") then
+		if (VGT_CONFIG == nil) then
+			VGT_CONFIG = {
+				logLevel = LOG.LEVELS[LOG_LEVEL.INFO]
+			}
+			logLevel = VGT_CONFIG.logLevel
+		else
+			logLevel = VGT_CONFIG.logLevel
+		end
+		ACE:RegisterComm(MODULE_NAME, HandleCoreMessageReceivedEvent)
+		ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST", "GUILD")
+
+		VGT_EP_Initialize()
+
+		initialized = true
+		Log(LOG_LEVEL.TRACE, "initialized with version %s", VERSION)
+	end
+
+	if (event == "PLAYER_ENTERING_WORLD") then
+		HandleInstanceChangeEvent(event)
+	end
+
+	if (initialized and event == "COMBAT_LOG_EVENT_UNFILTERED") then
+		HandleCombatLogEvent(event)
+	end
+
+	if (initialized and event == "PLAYER_LOGOUT") then
+		VGT_CONFIG.logLevel = logLevel
+	end
+end
+FRAME:RegisterEvent("ADDON_LOADED")
+FRAME:RegisterEvent("PLAYER_ENTERING_WORLD")
+FRAME:RegisterEvent("PLAYER_LOGOUT")
+FRAME:SetScript("OnEvent", OnEvent)
 
 -- ############################################################
 -- ##### SLASH COMMANDS #######################################
@@ -142,23 +211,21 @@ end
 
 SLASH_VGT1 = "/vgt"
 SlashCmdList["VGT"] = function(message)
-	local command, arg1, arg2 = strsplit(" ", message)
+	local command, arg1 = strsplit(" ", message)
+	if (command == "" or command == "help") then
+		PrintHelp()
+		return
+	end
 
-	if (command == "debug") then
-		VGT.debug = not VGT.debug
-		LOG(format("[%s] debug mode toggled (value=%s)", ADDON_NAME, tostring(VGT.debug)))
-		return
-	end
-	if (command == "eptest") then
+	if (command == "about") then
+		PrintAbout()
+	elseif (command == "loglevel") then
+		SetLogLevel(arg1)
+	elseif (command == "dungeontest") then
 		HandleUnitDeath("TEST"..RandomUUID(), "TestDungeon", "TestBoss")
-		return
-	end
-	if (command == "dungeons") then
+	elseif (command == "dungeons") then
 		PrintDungeonList(tonumber(arg1), VGT.debug)
-		return
+	else
+		Log(LOG_LEVEL.ERROR, "invalid command - type `/vgt help` for a list of commands")
 	end
-	LOG(format("[%s] Command List:", ADDON_NAME))
-	LOG(format("%s - %s", "/vgt debug", "enables debug mode"))
-	LOG(format("%s - %s", "/vgt eptest", "sends an EP test event"))
-	LOG(format("%s - %s", "/vgt dungeons <timeframe>", "prints the list of EP award candidates based on dungeon activity"))
 end
