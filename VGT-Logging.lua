@@ -11,7 +11,16 @@ LOG_LEVEL.WARN = "WARN"
 LOG_LEVEL.ERROR = "ERROR"
 LOG_LEVEL.SYSTEM = "SYSTEM"
 LOG_LEVEL.OFF = "OFF"
-LOG_LEVELS={LOG_LEVEL.ALL,LOG_LEVEL.TRACE,LOG_LEVEL.DEBUG,LOG_LEVEL.INFO,LOG_LEVEL.WARN,LOG_LEVEL.ERROR,LOG_LEVEL.SYSTEM,LOG_LEVEL.OFF}
+LOG_LEVELS={
+    LOG_LEVEL.ALL,
+    LOG_LEVEL.TRACE,
+    LOG_LEVEL.DEBUG,
+    LOG_LEVEL.INFO,
+    LOG_LEVEL.WARN,
+    LOG_LEVEL.ERROR,
+    LOG_LEVEL.SYSTEM,
+    LOG_LEVEL.OFF
+}
 LOG={
     LEVELS={
       [LOG_LEVEL.ALL]=0,[0]=LOG_LEVEL.ALL,
@@ -27,14 +36,13 @@ LOG={
       [LOG_LEVEL.ALL]="|cff000000",[0]="|cff000000", -- black
       [LOG_LEVEL.TRACE]="|cff00ffff",[1]="|cff00ffff", -- cyan
       [LOG_LEVEL.DEBUG]="|cffff00ff",[2]="|cffff00ff", -- purple
-      [LOG_LEVEL.INFO]="|cffffffff",[3]="|cffffffff", -- white
-      [LOG_LEVEL.WARN]="|cffff0800",[4]="|cffff0800", -- orange
+      [LOG_LEVEL.INFO]="|cffffff00",[3]="|cffffff00", -- yellow
+      [LOG_LEVEL.WARN]="|cffff8800",[4]="|cffff8800", -- orange
       [LOG_LEVEL.ERROR]="|cffff0000",[5]="|cffff0000", -- red
       [LOG_LEVEL.SYSTEM]="|cffffff00",[6]="|cffffff00", -- yellow
       [LOG_LEVEL.OFF]="|cff000000",[7]="|cff000000" -- black
     }
 }
--- logLevel = LOG.LEVELS[LOG_LEVEL.INFO]
 
 
 local LogLevelToNumber = function(level)

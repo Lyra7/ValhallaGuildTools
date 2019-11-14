@@ -59,7 +59,7 @@ function SaveAndSendBossKill(key, value)
 	if (record == nil or record == "") then
 		VGT_EPDB[key] = value
 		local message = format("%s;%s", key, value)
-		Log(LOG_LEVEL.TRACE, "saving %s and sending to guild.", message)
+		Log(LOG_LEVEL.DEBUG, "saving %s and sending to guild.", message)
 		ACE:SendCommMessage(MODULE_NAME, message, "GUILD")
 	else
 		Log(LOG_LEVEL.TRACE, "record %s already exists in DB before it could be saved.", message)
@@ -81,8 +81,9 @@ function HandleUnitDeath(creatureUID, dungeonName, bossName)
 			local value = format("%s:%s:%s", timestamp, dungeonName, bossName)
 			CheckLocalDBForBossKill(key, value)
 			SaveAndSendBossKill(key, value)
+		else
+			Log(LOG_LEVEL.DEBUG, "skipping boss kill event because you are not in a group with any guild members of %s", guildName)
 		end
-		Log(LOG_LEVEL.DEBUG, "skipping boss kill event because you are not in a group with any guild members of %s", guildName)
 	else
 		Log(LOG_LEVEL.DEBUG, "skipping boss kill event because you are not in a guild")
 	end
