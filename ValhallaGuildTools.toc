@@ -8,7 +8,7 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: Bonkeybee
-## Version: 11302.9
+## Version: 11302.10
 
 embeds.xml
 VGT-Logging.lua
