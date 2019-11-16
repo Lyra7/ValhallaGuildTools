@@ -1,11 +1,38 @@
 ADDON_NAME, VGT = ...
 VERSION = GetAddOnMetadata(ADDON_NAME, "Version")
 FRAME = CreateFrame("Frame")
+
+-- ############################################################
+-- ##### LIBRARIES ############################################
+-- ############################################################
+
 ACE = LibStub("AceAddon-3.0"):NewAddon(ADDON_NAME, "AceComm-3.0")
+
+-- ############################################################
+-- ##### CONSTANTS ############################################
+-- ############################################################
+
 local MODULE_NAME = "VGT-Core"
 
 -- ############################################################
--- ##### HELPERS ##############################################
+-- ##### LOCAL FUNCTIONS ######################################
+-- ############################################################
+
+local HandleInstanceChangeEvent = function()
+	local _, instanceType, _, _, _, _, _, instanceID, _, _ = GetInstanceInfo()
+	if (instanceType == "party" or instanceType == "raid") then
+		local dungeonName = VGT.dungeons[tonumber(instanceID)]
+		if (dungeonName ~= nil) then
+			Log(LOG_LEVEL.INFO, "Started logging for %s, goodluck!", dungeonName)
+			FRAME:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+		end
+	else
+		FRAME:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+	end
+end
+
+-- ############################################################
+-- ##### GLOBAL FUNCTIONS #####################################
 -- ############################################################
 
 function StringAppend(...)
@@ -119,7 +146,7 @@ function CheckGroupForGuildies()
 		local groupMember = groupMembers[i]
 		if (IsInMyGuild(groupMember)) then
 			guildGroupMembers[p] = groupMember
-			Log(LOG_LEVEL.DEBUG, "%s is in my guild", guildGroupMembers[p])
+			Log(LOG_LEVEL.TRACE, "%s is in my guild", guildGroupMembers[p])
 			p = p + 1
 		end
 	end
