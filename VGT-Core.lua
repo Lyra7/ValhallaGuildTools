@@ -25,6 +25,8 @@ local HandleInstanceChangeEvent = function()
 		if (dungeonName ~= nil) then
 			Log(LOG_LEVEL.INFO, "Started logging for %s, goodluck!", dungeonName)
 			FRAME:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+		else
+			Log(LOG_LEVEL.DEBUG, "Entered %s(%s) but it is not a tracked dungeon.", dungeonName, instanceID)
 		end
 	else
 		FRAME:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
@@ -57,7 +59,7 @@ function TableJoinToArray(a, b)
 	return nt
 end
 
-function TableToString(t, d, sort)
+function TableToString(t, d, keys, sort, line)
 	local s = ""
 
 	if (t == nil) then
@@ -79,10 +81,23 @@ function TableToString(t, d, sort)
 	end
 
 	for _,v in pairs(t) do
-		s = s..","..v
+		s = s..d
+		if (type(v) == "table") then
+			s = s..TableToString(v, d, keys, sort, line)
+		else
+			if (line) then
+				s = s..v.."\n"
+			else
+				s = s..v
+			end
+		end
 	end
 
-	return string.sub(s, 2)
+	if (d ~= nil and d ~= "") then
+		return string.sub(s, 2)
+	else
+		return s
+	end
 end
 
 function TableContains(t, m)
@@ -195,36 +210,46 @@ function HandleCoreMessageReceivedEvent(prefix, message, _, sender)
 	end
 end
 
-local initialized = false
+local function DefaultOrSet(default, value1, value2)
+	if (value1 == nil or value1 == value2) then
+		return default
+	end
+	return value1
+end
+
+local loaded = false
+local entered = false
 local function OnEvent(_, event)
-	if (not initialized and event == "ADDON_LOADED") then
-		if (VGT_CONFIG == nil) then
-			VGT_CONFIG = {
+	if (not loaded and event == "ADDON_LOADED") then
+		if (VGT_CONFIGURATION == nil) then
+			VGT_CONFIGURATION = {
 				logLevel = LOG.LEVELS[LOG_LEVEL.INFO]
 			}
-			logLevel = VGT_CONFIG.logLevel
-		else
-			logLevel = VGT_CONFIG.logLevel
 		end
-		ACE:RegisterComm(MODULE_NAME, HandleCoreMessageReceivedEvent)
-		ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST", "GUILD")
+		logLevel = DefaultOrSet(LOG.LEVELS[LOG_LEVEL.INFO], VGT_CONFIGURATION.logLevel, 0)
 
+		ACE:RegisterComm(MODULE_NAME, HandleCoreMessageReceivedEvent)
 		VGT_EP_Initialize()
 
-		initialized = true
-		Log(LOG_LEVEL.TRACE, "initialized with version %s", VERSION)
+		loaded = true
 	end
 
 	if (event == "PLAYER_ENTERING_WORLD") then
 		HandleInstanceChangeEvent(event)
+
+		if (not entered) then
+			ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST", "GUILD")
+			Log(LOG_LEVEL.TRACE, "initialized with version %s", VERSION)
+			entered = true
+		end
 	end
 
-	if (initialized and event == "COMBAT_LOG_EVENT_UNFILTERED") then
+	if (loaded and event == "COMBAT_LOG_EVENT_UNFILTERED") then
 		HandleCombatLogEvent(event)
 	end
 
-	if (initialized and event == "PLAYER_LOGOUT") then
-		VGT_CONFIG.logLevel = logLevel
+	if (loaded and event == "PLAYER_LOGOUT") then
+		VGT_CONFIGURATION.logLevel = logLevel
 	end
 end
 FRAME:RegisterEvent("ADDON_LOADED")
@@ -252,6 +277,8 @@ SlashCmdList["VGT"] = function(message)
 		HandleUnitDeath("TEST"..RandomUUID(), "TestDungeon", "TestBoss")
 	elseif (command == "dungeons") then
 		PrintDungeonList(tonumber(arg1), VGT.debug)
+	elseif (command == "me") then
+		PrintMe()
 	else
 		Log(LOG_LEVEL.ERROR, "invalid command - type `/vgt help` for a list of commands")
 	end

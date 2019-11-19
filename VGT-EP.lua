@@ -5,6 +5,13 @@ local MY_EPDB = {}
 -- ##### LOCAL FUNCTIONS ######################################
 -- ############################################################
 
+local Increment = function(value, i)
+	if (value == nil) then
+		return i
+	end
+	return value + i
+end
+
 -- Create a list of unique players sorted alphabetically that were found in the EPDB
 --	timeframeInDays: default 7, controls how long ago to look for records in the EPDB
 -- 	includeTests: default false, controls whether or not test records are included
@@ -15,10 +22,12 @@ local ConstructPlayerTableFromHistory = function(timeframeInDays, includeTests)
 	local timeframeInSeconds = timeframeInDays * 86400
 	local currentTime = GetServerTime()
 	local playersTable = {}
+	local meTable = {dungeons={}, bosses={}}
+	local playerName = UnitName("player")
 
 	-- Loop through each record in the EPDB
 	for key,value in pairs(VGT_EPDB) do
-		local timestamp, _, _ = strsplit(":", value)
+		local timestamp, dungeon, boss = strsplit(":", value)
 
 		-- Ignore records that are past the timeframe
 		if (timestamp + timeframeInSeconds > currentTime) then
@@ -29,19 +38,29 @@ local ConstructPlayerTableFromHistory = function(timeframeInDays, includeTests)
 			if (myGuildName ~= nil and myGuildName == guild) then
 
 				-- Ignore records which don't have a valid uid
-				if (uid ~= nil and string.match(uid, "TEST")) then
+				if (uid ~= nil) then
+					local localPlayersTable = {}
 
 					-- Ignore test records if the flag is false
-					if (includeTests == true) then
-						playersTable = TableJoinToArray(playersTable, {strsplit(",", players)})
+					if (string.match(uid, "TEST")) then
+						if (includeTests) then
+							localPlayersTable = {strsplit(",", players)}
+						end
+					else
+						localPlayersTable = {strsplit(",", players)}
 					end
-				else
-					playersTable = TableJoinToArray(playersTable, {strsplit(",", players)})
+
+					--	["VGT-EP:0441134150061717000050A15D:Valhalla:Enc,Rissah"] = "1573955536:The Stockade:Hamhock",
+					if (TableContains(localPlayersTable, playerName)) then
+						meTable.dungeons[dungeon] = Increment(meTable.dungeons[dungeon], 1)
+						meTable.bosses[boss] = Increment(meTable.dungeons[boss], 1)
+					end
+					playersTable = TableJoinToArray(playersTable, localPlayersTable)
 				end
 			end
 		end
 	end
-	return playersTable
+	return playersTable, meTable
 end
 
 -- Check if the local EPDB already has the
@@ -71,11 +90,26 @@ end
 -- ##### GLOBAL FUNCTIONS #####################################
 -- ############################################################
 
+PrintMe = function(timeframeInDays, includeTests)
+	local players, me = ConstructPlayerTableFromHistory(timeframeInDays, includeTests)
+	print(TableToString(me.dungeons, ",", true))
+	print(TableToString(me.bosses, ",", true))
+	Log(LOG_LEVEL.SYSTEM, "You did: %s", TableToString(me))
+end
+
 -- Print the list of players who did dungeons within the timeframe
 --	timeframeInDays: default 7, controls how long ago to look for records in the EPDB
 -- 	includeTests: default false, controls whether or not test records are included
 PrintDungeonList = function(timeframeInDays, includeTests)
-	Log(LOG_LEVEL.SYSTEM, "%s", TableToString(ConstructPlayerTableFromHistory(timeframeInDays, includeTests), ",", true))
+	local str = TableToString(ConstructPlayerTableFromHistory(timeframeInDays, includeTests), "", false, true, true)
+	VGT_DUNGEONS_FRAME:Show();
+	VGT_DUNGEONS_FRAME_SCROLL:Show()
+	VGT_DUNGEONS_FRAME_TEXT:Show()
+	VGT_DUNGEONS_FRAME_TEXT:SetText(str)
+	VGT_DUNGEONS_FRAME_TEXT:HighlightText()
+
+	VGT_DUNGEONS_FRAME_BUTTON:SetScript("OnClick", function(self) VGT_DUNGEONS_FRAME:Hide() end)
+	VGT_DUNGEONS_FRAME_TEXT:SetScript("OnEscapePressed", function(self) self:GetParent():GetParent():Hide() end)
 end
 
 HandleUnitDeath = function(creatureUID, dungeonName, bossName)
@@ -87,7 +121,7 @@ HandleUnitDeath = function(creatureUID, dungeonName, bossName)
 		if (groupedGuildies ~= nil and next(groupedGuildies) ~= nil) then
 			local playerName = UnitName("player")
 			table.insert(groupedGuildies, playerName)
-			local groupedGuildiesStr = TableToString(groupedGuildies, ",", true)
+			local groupedGuildiesStr = TableToString(groupedGuildies, ",", false, true)
 			Log(LOG_LEVEL.INFO, "killed %s in %s as a guild with %s", bossName, dungeonName, groupedGuildiesStr)
 			local key = format("%s:%s:%s:%s", MODULE_NAME, creatureUID, guildName, groupedGuildiesStr)
 			local value = format("%s:%s:%s", timestamp, dungeonName, bossName)

@@ -75,7 +75,7 @@ VGT.bosses[4420] = "Overlord Ramtusk"
 VGT.bosses[4422] = "Agathelos the Raging"
 VGT.bosses[4421] = "Charlga Razorflank"
 
-VGT.dungeons[1004] = "Scarlet Monastery"
+VGT.dungeons[189] = "Scarlet Monastery"
 VGT.bosses[3983] = "Interrogator Vishas"
 VGT.bosses[4543] = "Bloodmage Thalnos"
 VGT.bosses[6490] = "Azshir the Sleepless"

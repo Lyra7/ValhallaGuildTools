@@ -2,15 +2,16 @@
 ## X-Min-Interface: 11302
 ## Title: ValhallaGuildTools
 ## Notes: Valhalla Guild Tools
-## SavedVariables: VGT_CONFIG
+## SavedVariables: VGT_CONFIGURATION
 ## SavedVariablesPerCharacter: VGT_EPDB
 ## OptionalDeps: Ace3
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: Bonkeybee
-## Version: 11302.10
+## Version: 11302.11
 
 embeds.xml
+dungeonsframe.xml
 VGT-Logging.lua
 VGT-Core.lua
 VGT-EP.lua

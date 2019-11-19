@@ -26,7 +26,7 @@ LOG_LEVELS={
 }
 LOG={
     LEVELS={
-      [LOG_LEVEL.ALL]=1,[1]=LOG_LEVEL.ALL,
+      [LOG_LEVEL.ALL]=-1,[-1]=LOG_LEVEL.ALL,
       [LOG_LEVEL.TRACE]=2,[2]=LOG_LEVEL.TRACE,
       [LOG_LEVEL.DEBUG]=3,[3]=LOG_LEVEL.DEBUG,
       [LOG_LEVEL.INFO]=4,[4]=LOG_LEVEL.INFO,
@@ -36,7 +36,7 @@ LOG={
       [LOG_LEVEL.OFF]=8,[8]=LOG_LEVEL.OFF
     },
     COLORS={
-      [LOG_LEVEL.ALL]="|cff000000",[1]="|cff000000", -- black
+      [LOG_LEVEL.ALL]="|cff000000",[-1]="|cff000000", -- black
       [LOG_LEVEL.TRACE]="|cff00ffff",[2]="|cff00ffff", -- cyan
       [LOG_LEVEL.DEBUG]="|cffff00ff",[3]="|cffff00ff", -- purple
       [LOG_LEVEL.INFO]="|cffffff00",[4]="|cffffff00", -- yellow
