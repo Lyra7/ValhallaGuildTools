@@ -8,11 +8,12 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: Bonkeybee
-## Version: 11302.11
+## Version: 11302.12
 
 embeds.xml
 dungeonsframe.xml
 VGT-Logging.lua
 VGT-Core.lua
 VGT-EP.lua
+VGT-Douse.lua
 VGT-DungeonData.lua

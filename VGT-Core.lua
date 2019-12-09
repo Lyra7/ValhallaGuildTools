@@ -230,6 +230,7 @@ local function OnEvent(_, event)
 
 		ACE:RegisterComm(MODULE_NAME, HandleCoreMessageReceivedEvent)
 		VGT_EP_Initialize()
+		VGT_Douse_Initialize()
 
 		loaded = true
 	end
@@ -277,6 +278,8 @@ SlashCmdList["VGT"] = function(message)
 		HandleUnitDeath("TEST"..RandomUUID(), "TestDungeon", "TestBoss")
 	elseif (command == "dungeons") then
 		PrintDungeonList(tonumber(arg1), VGT.debug)
+	elseif (command == "douse") then
+		CheckForDouse()
 	else
 		Log(LOG_LEVEL.ERROR, "invalid command - type `/vgt help` for a list of commands")
 	end
