@@ -22,7 +22,6 @@ local ConstructPlayerTableFromHistory = function(timeframeInDays, includeTests)
 	local timeframeInSeconds = timeframeInDays * 86400
 	local currentTime = GetServerTime()
 	local playersTable = {}
-	local meTable = {dungeons={}, bosses={}}
 	local playerName = UnitName("player")
 
 	-- Loop through each record in the EPDB
@@ -50,17 +49,12 @@ local ConstructPlayerTableFromHistory = function(timeframeInDays, includeTests)
 						localPlayersTable = {strsplit(",", players)}
 					end
 
-					--	["VGT-EP:0441134150061717000050A15D:Valhalla:Enc,Rissah"] = "1573955536:The Stockade:Hamhock",
-					if (TableContains(localPlayersTable, playerName)) then
-						meTable.dungeons[dungeon] = Increment(meTable.dungeons[dungeon], 1)
-						meTable.bosses[boss] = Increment(meTable.dungeons[boss], 1)
-					end
 					playersTable = TableJoinToArray(playersTable, localPlayersTable)
 				end
 			end
 		end
 	end
-	return playersTable, meTable
+	return playersTable
 end
 
 -- Check if the local EPDB already has the
@@ -86,16 +80,26 @@ local SaveAndSendBossKill = function(key, value)
 	end
 end
 
+local withinDays = function(timestamp, days)
+		if ((GetServerTime() - timestamp) < (60 * 60 * 24 * days)) then
+			return true
+		end
+		return false
+end
+
+local CleanDatabase = function()
+	for k,v in pairs(VGT_EPDB) do
+		local timestamp, _, _ = strsplit(":", v)
+		if (not withinDays(timestamp, 14)) then
+			Log(LOG_LEVEL.DEBUG, "record %s removed for being too old", k)
+			VGT_EPDB[k] = nil
+		end
+	end
+end
+
 -- ############################################################
 -- ##### GLOBAL FUNCTIONS #####################################
 -- ############################################################
-
-PrintMe = function(timeframeInDays, includeTests)
-	local players, me = ConstructPlayerTableFromHistory(timeframeInDays, includeTests)
-	print(TableToString(me.dungeons, ",", true))
-	print(TableToString(me.bosses, ",", true))
-	Log(LOG_LEVEL.SYSTEM, "You did: %s", TableToString(me))
-end
 
 -- Print the list of players who did dungeons within the timeframe
 --	timeframeInDays: default 7, controls how long ago to look for records in the EPDB
@@ -179,20 +183,30 @@ function HandleEPMessageReceivedEvent(prefix, message, distribution, sender)
 	if (distribution == "GUILD") then
 		if (event == "SYNCHRONIZATION_REQUEST") then
 			for k,v in pairs(VGT_EPDB) do
-				_, _, guildNameFromHistory, _ = strsplit(":", k)
+				local _, _, guildNameFromHistory, _ = strsplit(":", k)
 				local guildName = GetMyGuildName()
 				if (guildName ~= nil and guildName == guildNameFromHistory) then
-					local message = format("%s;%s", k, v)
-					Log(LOG_LEVEL.TRACE, "sending %s to %s for %s:SYNCHRONIZATION_REQUEST.", message, sender, MODULE_NAME)
-					ACE:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
+					local timestamp, _, _ = strsplit(":", v)
+					if (withinDays(timestamp, 14)) then
+						local message = format("%s;%s", k, v)
+						Log(LOG_LEVEL.TRACE, "sending %s to %s for %s:SYNCHRONIZATION_REQUEST.", message, sender, MODULE_NAME)
+						ACE:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
+					else
+						Log(LOG_LEVEL.DEBUG, "record %s is too old to send.", v)
+					end
 				end
 			end
 		else
 			local key, value = strsplit(";", message)
 			local record = VGT_EPDB[key]
 			if (record == nil or record == "") then
-				Log(LOG_LEVEL.DEBUG, "saving record %s from %s.", message, sender)
-				VGT_EPDB[key] = value
+				local timestamp, _, _ = strsplit(":", value)
+				if (withinDays(timestamp, 14)) then
+					Log(LOG_LEVEL.DEBUG, "saving record %s from %s.", message, sender)
+					VGT_EPDB[key] = value
+				else
+					Log(LOG_LEVEL.DEBUG, "record %s from %s is too old to recieve.", value, sender)
+				end
 			else
 				Log(LOG_LEVEL.TRACE, "record %s from %s already exists in DB.", message, sender)
 			end
@@ -204,6 +218,7 @@ function VGT_EP_Initialize()
 	if (VGT_EPDB == nil) then
 		VGT_EPDB = {}
 	end
+	CleanDatabase()
 	ACE:RegisterComm(MODULE_NAME, HandleEPMessageReceivedEvent)
 	ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST", "GUILD")
 end

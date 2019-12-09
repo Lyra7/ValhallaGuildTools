@@ -277,8 +277,6 @@ SlashCmdList["VGT"] = function(message)
 		HandleUnitDeath("TEST"..RandomUUID(), "TestDungeon", "TestBoss")
 	elseif (command == "dungeons") then
 		PrintDungeonList(tonumber(arg1), VGT.debug)
-	elseif (command == "me") then
-		PrintMe()
 	else
 		Log(LOG_LEVEL.ERROR, "invalid command - type `/vgt help` for a list of commands")
 	end
