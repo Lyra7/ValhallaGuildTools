@@ -173,12 +173,12 @@ function TableSize(t)
 		return 0
 	end
 
-	if (type(v) ~= "table") then
+	if (type(t) ~= "table") then
 		return 0
 	end
 
 	local c = 0
-  for _ in pairs(T) do
+  for _ in pairs(t) do
 		c = c + 1
 	end
   return c

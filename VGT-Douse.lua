@@ -33,7 +33,10 @@ function HandleDouseMessageReceivedEvent(prefix, message, distribution, sender)
 	if (distribution == "RAID") then
 		if (event == "SYNCHRONIZATION_REQUEST") then
 			ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":HAS_DOUSE", "WHISPER", sender)
-		elseif (event == "HAS_DOUSE") then
+		end
+	end
+	if (distribution == "WHISPER") then
+		if (event == "HAS_DOUSE") then
 			douses[sender] = 1
 		end
 	end
@@ -61,7 +64,7 @@ function HasDouse()
       local _, _, _, _, _, _, itemLink = GetContainerItemInfo(bagIndex, slotIndex)
       if (itemLink ~= nil) then
         local itemId = select(3, strfind(itemLink, "item:(%d+)"))
-        if (itemId == 17333) then
+				if (itemId == "17333") then
           return true
         end
       end
