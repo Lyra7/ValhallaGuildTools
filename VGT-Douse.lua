@@ -43,7 +43,7 @@ function HandleDouseMessageReceivedEvent(prefix, message, distribution, sender)
 end
 
 function CheckForDouse()
-	douseCount = {}
+	douses = {}
 	Log(LOG_LEVEL.SYSTEM, "Checking the raid for Aqual Quintessences, please wait...")
 	ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST", "RAID")
 	if (not isTiming) then

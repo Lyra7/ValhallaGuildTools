@@ -178,8 +178,10 @@ function TableSize(t)
 	end
 
 	local c = 0
-  for _ in pairs(t) do
-		c = c + 1
+  for k,v in pairs(t) do
+		if (v ~= nil) then
+			c = c + 1
+		end
 	end
   return c
 end
