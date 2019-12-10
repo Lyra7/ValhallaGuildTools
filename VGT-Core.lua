@@ -6,7 +6,7 @@ FRAME = CreateFrame("Frame")
 -- ##### LIBRARIES ############################################
 -- ############################################################
 
-ACE = LibStub("AceAddon-3.0"):NewAddon(ADDON_NAME, "AceComm-3.0")
+ACE = LibStub("AceAddon-3.0"):NewAddon(ADDON_NAME, "AceComm-3.0", "AceTimer-3.0")
 
 -- ############################################################
 -- ##### CONSTANTS ############################################
@@ -166,6 +166,22 @@ function CheckGroupForGuildies()
 		end
 	end
 	return guildGroupMembers
+end
+
+function TableSize(t)
+	if (t == nil) then
+		return 0
+	end
+
+	if (type(v) ~= "table") then
+		return 0
+	end
+
+	local c = 0
+  for _ in pairs(T) do
+		c = c + 1
+	end
+  return c
 end
 
 function PrintAbout()
