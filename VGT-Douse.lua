@@ -11,7 +11,10 @@ local MODULE_NAME = "VGT-Douse"
 local isTiming = false
 local douses = {}
 local PrintDouseCount = function()
+	Log(LOG_LEVEL.SYSTEM, "Raid members with Aqual Quintessences:")
+	Log(LOG_LEVEL.SYSTEM, "%s", TableToString(douses))
 	Log(LOG_LEVEL.SYSTEM, "The raid has %s Aqual Quintessences.", TableSize(douses))
+
 	isTiming = false
 end
 
@@ -32,12 +35,14 @@ function HandleDouseMessageReceivedEvent(prefix, message, distribution, sender)
 
 	if (distribution == "RAID") then
 		if (event == "SYNCHRONIZATION_REQUEST") then
-			ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":HAS_DOUSE", "WHISPER", sender)
+			if (HasDouse()) then
+				ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":HAS_DOUSE", "WHISPER", sender)
+			end
 		end
 	end
 	if (distribution == "WHISPER") then
 		if (event == "HAS_DOUSE") then
-			douses[sender] = 1
+			douses[sender] = sender
 		end
 	end
 end
@@ -53,7 +58,7 @@ function CheckForDouse()
 
 	if (HasDouse()) then
 		local playerName = UnitName("player")
-		douses[playerName] = 1
+		douses[playerName] = playerName
 	end
 end
 
