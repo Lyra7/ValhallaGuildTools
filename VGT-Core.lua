@@ -37,6 +37,24 @@ end
 -- ##### GLOBAL FUNCTIONS #####################################
 -- ############################################################
 
+function ArrayToSet(array)
+   local t = {}
+   for _,item in pairs(array) do
+       t[item] = true
+   end
+   return t
+end
+
+function SubsetCount(a, b)
+	local c = 0
+   for k,_ in pairs(a) do
+      if (b[k]) then
+				c = c + 1
+      end
+    end
+   return c
+end
+
 function StringAppend(...)
 	local args = {...}
 	local str = ""
@@ -57,6 +75,10 @@ function TableJoinToArray(a, b)
 		nt[v] = v
 	end
 	return nt
+end
+
+function TableKeysToString(t, d)
+	return TableToString(t, d, true)
 end
 
 function TableToString(t, d, keys, sort, line)
@@ -80,15 +102,21 @@ function TableToString(t, d, keys, sort, line)
 		t = nt
 	end
 
-	for _,v in pairs(t) do
+	for k,v in pairs(t) do
 		s = s..d
 		if (type(v) == "table") then
 			s = s..TableToString(v, d, keys, sort, line)
 		else
-			if (line) then
-				s = s..v.."\n"
+			local c = nil
+			if (keys) then
+				c = k
 			else
-				s = s..v
+				c = v
+			end
+			if (line) then
+				s = s..c.."\n"
+			else
+				s = s..c
 			end
 		end
 	end
@@ -237,6 +265,7 @@ end
 
 local loaded = false
 local entered = false
+local rostered = false
 local function OnEvent(_, event)
 	if (not loaded and event == "ADDON_LOADED") then
 		if (VGT_CONFIGURATION == nil) then
@@ -246,33 +275,43 @@ local function OnEvent(_, event)
 		end
 		logLevel = DefaultOrSet(LOG.LEVELS[LOG_LEVEL.INFO], VGT_CONFIGURATION.logLevel, 0)
 
-		ACE:RegisterComm(MODULE_NAME, HandleCoreMessageReceivedEvent)
-		VGT_EP_Initialize()
 		VGT_Douse_Initialize()
-
+		ACE:RegisterComm(MODULE_NAME, HandleCoreMessageReceivedEvent)
 		loaded = true
 	end
 
-	if (event == "PLAYER_ENTERING_WORLD") then
-		HandleInstanceChangeEvent(event)
+	if (loaded) then
+		if (event == "PLAYER_ENTERING_WORLD") then
+			HandleInstanceChangeEvent(event)
 
-		if (not entered) then
-			ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST", "GUILD")
-			Log(LOG_LEVEL.TRACE, "initialized with version %s", VERSION)
-			entered = true
+			if (not entered) then
+				GuildRoster()
+				ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST", "GUILD")
+				Log(LOG_LEVEL.TRACE, "initialized with version %s", VERSION)
+				entered = true
+			end
+		end
+
+		if (not rostered and event == "GUILD_ROSTER_UPDATE") then
+			if (IsInGuild()) then
+				ACE:ScheduleTimer(VGT_EP_Initialize, 5)
+				rostered = true
+			end
+		end
+
+		if (event == "COMBAT_LOG_EVENT_UNFILTERED") then
+			HandleCombatLogEvent(event)
+		end
+
+		if (event == "PLAYER_LOGOUT") then
+			VGT_CONFIGURATION.logLevel = logLevel
 		end
 	end
 
-	if (loaded and event == "COMBAT_LOG_EVENT_UNFILTERED") then
-		HandleCombatLogEvent(event)
-	end
-
-	if (loaded and event == "PLAYER_LOGOUT") then
-		VGT_CONFIGURATION.logLevel = logLevel
-	end
 end
 FRAME:RegisterEvent("ADDON_LOADED")
 FRAME:RegisterEvent("PLAYER_ENTERING_WORLD")
+FRAME:RegisterEvent("GUILD_ROSTER_UPDATE")
 FRAME:RegisterEvent("PLAYER_LOGOUT")
 FRAME:SetScript("OnEvent", OnEvent)
 

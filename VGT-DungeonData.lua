@@ -200,7 +200,7 @@ VGT.bosses[10339] = "Gyth"
 VGT.bosses[10430] = "The Beast"
 VGT.bosses[10363] = "General Drakkisath"
 
-VGT.dungeons[1007] = "Scholomance"
+VGT.dungeons[289] = "Scholomance"
 VGT.bosses[10506] = "Kirtonos the Herald"
 VGT.bosses[10503] = "Jandice Barov"
 VGT.bosses[11622] = "Rattlegore"

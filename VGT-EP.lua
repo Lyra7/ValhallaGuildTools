@@ -80,18 +80,93 @@ local SaveAndSendBossKill = function(key, value)
 	end
 end
 
-local withinDays = function(timestamp, days)
-		if ((GetServerTime() - timestamp) < (60 * 60 * 24 * days)) then
-			return true
-		end
-		return false
+local TimeStampToDaysFromNow = function(timestamp)
+	return (GetServerTime() - timestamp) / (60 * 60 * 24)
 end
 
-local CleanDatabase = function()
+local withinDays = function(timestamp, days)
+	local daysSinceTimestamp = TimeStampToDaysFromNow(timestamp)
+	if (daysSinceTimestamp > -0.01 and daysSinceTimestamp < days) then
+		return true
+	end
+	return false
+end
+
+local ValidateTime = function(timestamp)
+	if (withinDays(timestamp, 14)) then
+		return true
+	end
+	Log(LOG_LEVEL.DEBUG, "invalid timestamp %s", TimeStampToDaysFromNow(timestamp))
+	return false
+end
+
+local ValidateDungeon = function(dungeon)
+	if (dungeon == "TestDungeon" or TableContains(VGT.dungeons, dungeon)) then
+		return true
+	end
+	Log(LOG_LEVEL.DEBUG, "invalid dungeon %s", dungeon)
+	return false
+end
+
+local ValidateBoss = function(boss)
+	if (boss == "TestBoss" or TableContains(VGT.bosses, boss)) then
+		return true
+	end
+	Log(LOG_LEVEL.DEBUG, "invalid boss %s", boss)
+	return false
+end
+
+local ValidateGuild = function(guild)
+	local myGuildName = GetMyGuildName()
+	if (myGuildName ~= nil and myGuildName == guild) then
+		return true
+	end
+	Log(LOG_LEVEL.DEBUG, "invalid guild %s", guild)
+	return false
+end
+
+local GuildMembersSet = function()
+	local guildMembers = {}
+	if (IsInGuild()) then
+		local numTotalMembers = GetNumGuildMembers()
+		for i=1,numTotalMembers do
+			local fullname = GetGuildRosterInfo(i)
+			local name = strsplit("-", fullname)
+			guildMembers[name] = true
+		end
+	end
+	return guildMembers
+end
+
+local ValidatePlayers = function(guild, players)
+	local playersArray = {strsplit(",", players)}
+	local playersSet = ArrayToSet(playersArray)
+	if (SubsetCount(playersSet, GuildMembersSet()) > 1) then
+		return true
+	end
+	Log(LOG_LEVEL.DEBUG, "invalid group %s", players)
+	return false
+end
+
+local ValidateRecord = function(key, value)
+	if (key ~= nil and key ~= "" and value ~= nil and value ~= "") then
+		local module, creatureUID, guildName, players = strsplit(":", key)
+		local timestamp, dungeonName, bossName = strsplit(":", value)
+		if (ValidateGuild(guildName) and
+			ValidatePlayers(guildName, players) and
+			ValidateTime(timestamp) and
+			ValidateDungeon(dungeonName) and
+			ValidateBoss(bossName)) then
+			return true
+		end
+	end
+	return false
+end
+
+CleanDatabase = function()
 	for k,v in pairs(VGT_EPDB) do
-		local timestamp, _, _ = strsplit(":", v)
-		if (not withinDays(timestamp, 14)) then
-			Log(LOG_LEVEL.DEBUG, "record %s removed for being too old", k)
+		if (not ValidateRecord(k, v)) then
+			Log(LOG_LEVEL.DEBUG, "record %s removed for being invalid", k)
 			VGT_EPDB[k] = nil
 		end
 	end
@@ -183,29 +258,19 @@ function HandleEPMessageReceivedEvent(prefix, message, distribution, sender)
 	if (distribution == "GUILD") then
 		if (event == "SYNCHRONIZATION_REQUEST") then
 			for k,v in pairs(VGT_EPDB) do
-				local _, _, guildNameFromHistory, _ = strsplit(":", k)
-				local guildName = GetMyGuildName()
-				if (guildName ~= nil and guildName == guildNameFromHistory) then
-					local timestamp, _, _ = strsplit(":", v)
-					if (withinDays(timestamp, 14)) then
-						local message = format("%s;%s", k, v)
-						Log(LOG_LEVEL.TRACE, "sending %s to %s for %s:SYNCHRONIZATION_REQUEST.", message, sender, MODULE_NAME)
-						ACE:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
-					else
-						Log(LOG_LEVEL.DEBUG, "record %s is too old to send.", v)
-					end
-				end
+				local message = format("%s;%s", k, v)
+				Log(LOG_LEVEL.TRACE, "sending %s to %s for %s:SYNCHRONIZATION_REQUEST.", message, sender, MODULE_NAME)
+				ACE:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
 			end
 		else
 			local key, value = strsplit(";", message)
 			local record = VGT_EPDB[key]
 			if (record == nil or record == "") then
-				local timestamp, _, _ = strsplit(":", value)
-				if (withinDays(timestamp, 14)) then
+				if (ValidateRecord(key, value)) then
 					Log(LOG_LEVEL.DEBUG, "saving record %s from %s.", message, sender)
 					VGT_EPDB[key] = value
 				else
-					Log(LOG_LEVEL.DEBUG, "record %s from %s is too old to recieve.", value, sender)
+					Log(LOG_LEVEL.TRACE, "record %s from %s is invalid to recieve.", value, sender)
 				end
 			else
 				Log(LOG_LEVEL.TRACE, "record %s from %s already exists in DB.", message, sender)
