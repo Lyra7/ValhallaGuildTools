@@ -1,5 +1,5 @@
-## Interface: 11302
-## X-Min-Interface: 11302
+## Interface: 11303
+## X-Min-Interface: 11303
 ## Title: ValhallaGuildTools
 ## Notes: Valhalla Guild Tools
 ## SavedVariables: VGT_CONFIGURATION
@@ -8,7 +8,7 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: Bonkeybee
-## Version: 11302.16
+## Version: 11302.17
 
 embeds.xml
 dungeonsframe.xml
