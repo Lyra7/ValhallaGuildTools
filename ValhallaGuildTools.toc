@@ -8,12 +8,18 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: Bonkeybee
-## Version: 11302.17
+## Version: 11302.18
 
 embeds.xml
+Libs\LibStub\LibStub.lua
+Libs\HereBeDragons\HereBeDragons-2.0.lua
+Libs\HereBeDragons\HereBeDragons-Migrate.lua
+Libs\HereBeDragons\HereBeDragons-Pins-2.0.lua
+
 dungeonsframe.xml
 VGT-Logging.lua
 VGT-Core.lua
 VGT-EP.lua
 VGT-Douse.lua
+VGT-Map.lua
 VGT-DungeonData.lua
