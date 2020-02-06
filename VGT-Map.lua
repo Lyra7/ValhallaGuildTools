@@ -18,7 +18,9 @@ local sendMyLocation = function()
   local hp = UnitHealth("player") / UnitHealthMax("player")
   if (playerName ~= nil and instanceMapId ~= nil and x ~= nil and y ~= nil and hp ~= nil) then
     local data = playerName..DELIMITER..instanceMapId..DELIMITER..x..DELIMITER..y..DELIMITER..hp
-    ACE:SendCommMessage(MODULE_NAME, data, "GUILD")
+    if (IsInGuild()) then
+      ACE:SendCommMessage(MODULE_NAME, data, "GUILD")
+    end
   end
 end
 
@@ -41,8 +43,29 @@ local hidePin = function(self)
   GameTooltip:Hide()
 end
 
+local cleanPins = function()
+  local guildMembersOnline = {}
+  local numTotalMembers = GetNumGuildMembers()
+  for i = 1, numTotalMembers do
+    local fullname, _, _, _, _, _, _, _, online = GetGuildRosterInfo(i)
+    local name = strsplit("-", fullname)
+    guildMembersOnline[name] = online
+  end
+
+  for k, v in pairs(players) do
+    if (not guildMembersOnline[k]) then
+      local pin = players[k][1]
+      PINS:RemoveWorldMapIcon(MODULE_NAME, pin)
+      pins[pin] = nil
+      players[k] = nil
+      --TODO possible cleanup issue here, should just hide the pin instead
+    end
+  end
+end
+
 local updatePins = function()
   sendMyLocation()
+  cleanPins()
   if (WorldFrame ~= nil and WorldMapFrame:IsVisible()) then
     local w, h = WorldFrame:GetWidth(), WorldFrame:GetHeight()
     for k, v in pairs(players) do
