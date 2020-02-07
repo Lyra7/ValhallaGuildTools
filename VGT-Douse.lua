@@ -1,4 +1,6 @@
 local MODULE_NAME = "VGT-Douse"
+local LIB = LibStub("AceAddon-3.0"):NewAddon(MODULE_NAME,
+"AceComm-3.0", "AceTimer-3.0", "AceEvent-3.0")
 
 -- ############################################################
 -- ##### LOCAL FUNCTIONS ######################################
@@ -36,7 +38,7 @@ function HandleDouseMessageReceivedEvent(prefix, message, distribution, sender)
   if (distribution == "RAID") then
     if (event == "SYNCHRONIZATION_REQUEST") then
       if (HasDouse()) then
-        ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":HAS_DOUSE", "WHISPER", sender)
+        LIB:SendCommMessage(MODULE_NAME, MODULE_NAME..":HAS_DOUSE", "WHISPER", sender)
       end
     end
   end
@@ -50,9 +52,9 @@ end
 function CheckForDouse()
   douses = {}
   Log(VGT_LOG_LEVEL.SYSTEM, "Checking the raid for Aqual Quintessences, please wait...")
-  ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST", "RAID")
+  LIB:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST", "RAID")
   if (not isTiming) then
-    ACE:ScheduleTimer(PrintDouseCount, 5)
+    LIB:ScheduleTimer(PrintDouseCount, 5)
   end
   isTiming = true
 
@@ -79,5 +81,5 @@ function HasDouse()
 end
 
 function VGT_Douse_Initialize()
-  ACE:RegisterComm(MODULE_NAME, HandleDouseMessageReceivedEvent)
+  LIB:RegisterComm(MODULE_NAME, HandleDouseMessageReceivedEvent)
 end

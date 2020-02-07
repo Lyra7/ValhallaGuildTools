@@ -1,21 +1,9 @@
 VGT_ADDON_NAME, VGT = ...
 VGT_VERSION = GetAddOnMetadata(VGT_ADDON_NAME, "Version")
-VGT_FRAME = CreateFrame("Frame")
-
--- ############################################################
--- ##### LIBRARIES ############################################
--- ############################################################
-
-ACE = LibStub("AceAddon-3.0"):NewAddon(VGT_ADDON_NAME,
-"AceComm-3.0", "AceTimer-3.0", "AceEvent-3.0")
-HBD = LibStub("HereBeDragons-2.0")
-PINS = LibStub("HereBeDragons-Pins-2.0")
-
--- ############################################################
--- ##### CONSTANTS ############################################
--- ############################################################
-
 local MODULE_NAME = "VGT-Core"
+local LIB = LibStub("AceAddon-3.0"):NewAddon(MODULE_NAME,
+"AceComm-3.0", "AceTimer-3.0", "AceEvent-3.0")
+local VGT_FRAME = CreateFrame("Frame")
 
 -- ############################################################
 -- ##### LOCAL FUNCTIONS ######################################
@@ -292,7 +280,7 @@ local function OnEvent(_, event)
 
     VGT_Douse_Initialize()
     VGT_Map_Initialize()
-    ACE:RegisterComm(MODULE_NAME, HandleCoreMessageReceivedEvent)
+    LIB:RegisterComm(MODULE_NAME, HandleCoreMessageReceivedEvent)
     loaded = true
   end
 
@@ -302,7 +290,7 @@ local function OnEvent(_, event)
 
       if (not entered) then
         GuildRoster()
-        ACE:SendCommMessage(MODULE_NAME, "SYNCHRONIZATION_REQUEST:"..VGT_VERSION, "GUILD")
+        LIB:SendCommMessage(MODULE_NAME, "SYNCHRONIZATION_REQUEST:"..VGT_VERSION, "GUILD")
         Log(VGT_LOG_LEVEL.TRACE, "initialized with version %s", VGT_VERSION)
         entered = true
       end
@@ -310,7 +298,7 @@ local function OnEvent(_, event)
 
     if (not rostered and event == "GUILD_ROSTER_UPDATE") then
       if (IsInGuild()) then
-        ACE:ScheduleTimer(VGT_EP_Initialize, 5)
+        LIB:ScheduleTimer(VGT_EP_Initialize, 5)
         rostered = true
       end
     end

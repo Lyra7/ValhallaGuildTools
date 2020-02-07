@@ -1,4 +1,6 @@
 local MODULE_NAME = "VGT-EP"
+local VGT_ACE = LibStub("AceAddon-3.0"):NewAddon(MODULE_NAME,
+"AceComm-3.0", "AceTimer-3.0", "AceEvent-3.0")
 local MY_EPDB = {}
 local CleanDatabase = CreateFrame("Frame");
 
@@ -75,7 +77,7 @@ local SaveAndSendBossKill = function(key, value)
     VGT_EPDB[key] = value
     local message = format("%s;%s", key, value)
     Log(VGT_LOG_LEVEL.DEBUG, "saving %s and sending to guild.", message)
-    ACE:SendCommMessage(MODULE_NAME, message, "GUILD")
+    VGT_ACE:SendCommMessage(MODULE_NAME, message, "GUILD")
   else
     Log(VGT_LOG_LEVEL.TRACE, "record %s already exists in DB before it could be saved.", message)
   end
@@ -281,7 +283,7 @@ function HandleEPMessageReceivedEvent(prefix, message, distribution, sender)
         for k, v in pairs(VGT_EPDB) do
           local message = format("%s;%s", k, v)
           Log(VGT_LOG_LEVEL.TRACE, "sending %s to %s for %s:SYNCHRONIZATION_REQUEST.", message, sender, MODULE_NAME)
-          ACE:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
+          VGT_ACE:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
         end
       end
     else
@@ -306,6 +308,6 @@ function VGT_EP_Initialize()
     VGT_EPDB = {}
   end
   CleanDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate) CleanDatabase:onUpdate(sinceLastUpdate); end)
-  ACE:RegisterComm(MODULE_NAME, HandleEPMessageReceivedEvent)
-  ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST:"..Count(VGT_EPDB), "GUILD")
+  VGT_ACE:RegisterComm(MODULE_NAME, HandleEPMessageReceivedEvent)
+  VGT_ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST:"..Count(VGT_EPDB), "GUILD")
 end

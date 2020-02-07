@@ -1,4 +1,9 @@
 local MODULE_NAME = "VGT-Map"
+local LIB = LibStub("AceAddon-3.0"):NewAddon(MODULE_NAME,
+"AceComm-3.0", "AceTimer-3.0")
+local HBD = LibStub("HereBeDragons-2.0")
+local HBDP = LibStub("HereBeDragons-Pins-2.0")
+
 local UPDATE_SPEED = 6
 local BUFFER_STEP = 10
 local bufferPins = {}
@@ -44,7 +49,7 @@ local sendMyLocation = function()
   if (playerName ~= nil and instanceMapId ~= nil and x ~= nil and y ~= nil and hp ~= nil) then
     local data = playerName..DELIMITER..instanceMapId..DELIMITER..x..DELIMITER..y..DELIMITER..hp
     if (IsInGuild()) then
-      ACE:SendCommMessage(MODULE_NAME, data, GUILD, BULK)
+      LIB:SendCommMessage(MODULE_NAME, data, GUILD, nil, BULK)
     end
   end
 end
@@ -89,7 +94,7 @@ local cleanPins = function()
   for k, v in pairs(players) do
     if (not guildMembersOnline[k]) then
       local pin = players[k][PIN_INDEX]
-      PINS:RemoveWorldMapIcon(MODULE_NAME, pin)
+      HBDP:RemoveWorldMapIcon(MODULE_NAME, pin)
       players[k][NAME_INDEX] = false
     end
   end
@@ -102,7 +107,7 @@ local updatePins = function()
     local w, h = WorldFrame:GetWidth(), WorldFrame:GetHeight()
     for k, v in pairs(players) do
       if ((v[ACTIVE_INDEX] == nil or v[ACTIVE_INDEX]) and v[PIN_INDEX] ~= nil and v[MAP_ID_INDEX] ~= nil and v[X_INDEX] ~= nil and v[Y_INDEX] ~= nil) then
-        PINS:AddWorldMapIconWorld(MODULE_NAME, v[PIN_INDEX], tonumber(v[MAP_ID_INDEX]), tonumber(v[X_INDEX]), tonumber(v[Y_INDEX]), 3)
+        HBDP:AddWorldMapIconWorld(MODULE_NAME, v[PIN_INDEX], tonumber(v[MAP_ID_INDEX]), tonumber(v[X_INDEX]), tonumber(v[Y_INDEX]), 3)
       end
     end
   end
@@ -170,6 +175,6 @@ end
 
 function VGT_Map_Initialize()
   createBufferPins()
-  ACE:RegisterComm(MODULE_NAME, handleMapMessageReceivedEvent)
-  ACE:ScheduleRepeatingTimer(updatePins, UPDATE_SPEED)
+  LIB:RegisterComm(MODULE_NAME, handleMapMessageReceivedEvent)
+  LIB:ScheduleRepeatingTimer(updatePins, UPDATE_SPEED)
 end
