@@ -1,5 +1,6 @@
 local MODULE_NAME = "VGT-EP"
 local MY_EPDB = {}
+local CleanDatabase = CreateFrame("Frame");
 
 -- ############################################################
 -- ##### LOCAL FUNCTIONS ######################################
@@ -163,12 +164,28 @@ local ValidateRecord = function(key, value, sender)
   return false
 end
 
-CleanDatabase = function()
-  for k, v in pairs(VGT_EPDB) do
-    if (not ValidateRecord(k, v)) then
-      Log(VGT_LOG_LEVEL.DEBUG, "record %s removed for being invalid", k)
-      VGT_EPDB[k] = nil
+local CleanRecord = function(k, v)
+  if (not ValidateRecord(k, v)) then
+    VGT_EPDB[k] = nil
+    Log(VGT_LOG_LEVEL.DEBUG, "record %s removed for being invalid", k)
+  end
+end
+
+local firstKey
+local currentKey
+function CleanDatabase:onUpdate(sinceLastUpdate)
+  self.sinceLastUpdate = (self.sinceLastUpdate or 0) + sinceLastUpdate
+  if (self.sinceLastUpdate >= 0.05) then
+    currentKey, currentValue = next(VGT_EPDB, currentKey)
+    if (firstKey == nil) then
+      firstKey = currentKey
+    elseif (firstKey == currentKey) then
+      CleanDatabase:SetScript("OnUpdate", nil)
     end
+    if (currentKey ~= nil) then
+      CleanRecord(currentKey, currentValue)
+    end
+    self.sinceLastUpdate = 0
   end
 end
 
@@ -288,7 +305,7 @@ function VGT_EP_Initialize()
   if (VGT_EPDB == nil) then
     VGT_EPDB = {}
   end
-  CleanDatabase()
+  CleanDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate) CleanDatabase:onUpdate(sinceLastUpdate); end)
   ACE:RegisterComm(MODULE_NAME, HandleEPMessageReceivedEvent)
   ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST:"..Count(VGT_EPDB), "GUILD")
 end
