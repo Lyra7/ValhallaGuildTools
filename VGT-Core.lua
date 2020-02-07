@@ -241,6 +241,7 @@ function PrintHelp()
   Log(VGT_LOG_LEVEL.SYSTEM, "/vgt dungeons [timeframeInDays:7] - list of players that killed a dungeon boss within the timeframe")
 end
 
+local warnedPlayers = {}
 function HandleCoreMessageReceivedEvent(prefix, message, _, sender)
   if (prefix ~= MODULE_NAME) then
     return
@@ -253,8 +254,9 @@ function HandleCoreMessageReceivedEvent(prefix, message, _, sender)
 
   local event, version = strsplit(":", message)
   if (event == "SYNCHRONIZATION_REQUEST") then
-    if (version == nil and version < tonumber(VGT_VERSION)) then
-      SendChatMessage("There is a newer version of "..VGT_ADDON_NAME.." ("..version.." < "..VGT_VERSION..")", "WHISPER", nil, sender)
+    if (not warnedPlayers[sender] and version ~= nil and tonumber(version) < tonumber(VGT_VERSION)) then
+      SendChatMessage("There is a newer version of "..VGT_ADDON_NAME.." (yours "..version.." < mine "..VGT_VERSION..")", "WHISPER", nil, sender)
+      warnedPlayers[sender] = true
     end
   end
 end
