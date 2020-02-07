@@ -39,6 +39,10 @@ end
 -- ############################################################
 -- ##### GLOBAL FUNCTIONS #####################################
 -- ############################################################
+function Round(number, decimals)
+  return (("%%.%df"):format(decimals)):format(number)
+end
+
 function Safe(s)
   if (s == nil) then
     return ""
