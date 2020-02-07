@@ -1,12 +1,12 @@
-ADDON_NAME, VGT = ...
-VERSION = GetAddOnMetadata(ADDON_NAME, "Version")
-FRAME = CreateFrame("Frame")
+VGT_ADDON_NAME, VGT = ...
+VGT_VERSION = GetAddOnMetadata(VGT_ADDON_NAME, "Version")
+VGT_FRAME = CreateFrame("Frame")
 
 -- ############################################################
 -- ##### LIBRARIES ############################################
 -- ############################################################
 
-ACE = LibStub("AceAddon-3.0"):NewAddon(ADDON_NAME,
+ACE = LibStub("AceAddon-3.0"):NewAddon(VGT_ADDON_NAME,
 "AceComm-3.0", "AceTimer-3.0", "AceEvent-3.0")
 HBD = LibStub("HereBeDragons-2.0")
 PINS = LibStub("HereBeDragons-Pins-2.0")
@@ -26,19 +26,39 @@ local HandleInstanceChangeEvent = function()
   if (instanceType == "party" or instanceType == "raid") then
     local dungeonName = VGT.dungeons[tonumber(instanceID)]
     if (dungeonName ~= nil) then
-      Log(LOG_LEVEL.INFO, "Started logging for %s, goodluck!", dungeonName)
-      FRAME:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+      Log(VGT_LOG_LEVEL.INFO, "Started logging for %s, goodluck!", dungeonName)
+      VGT_FRAME:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     else
-      Log(LOG_LEVEL.DEBUG, "Entered %s(%s) but it is not a tracked dungeon.", dungeonName, instanceID)
+      Log(VGT_LOG_LEVEL.DEBUG, "Entered %s(%s) but it is not a tracked dungeon.", dungeonName, instanceID)
     end
   else
-    FRAME:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+    VGT_FRAME:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
   end
 end
 
 -- ############################################################
 -- ##### GLOBAL FUNCTIONS #####################################
 -- ############################################################
+function Safe(s)
+  if (s == nil) then
+    return ""
+  end
+  return s
+end
+
+function Count(t)
+  local c = 0
+  if (t == nil) then
+    return c
+  end
+  if (type(t) ~= "table") then
+    return c
+  end
+  for _, _ in pairs(t) do
+    c = c + 1
+  end
+  return c
+end
 
 function ArrayToSet(array)
   local t = {}
@@ -192,7 +212,7 @@ function CheckGroupForGuildies()
     local groupMember = groupMembers[i]
     if (IsInMyGuild(groupMember)) then
       guildGroupMembers[p] = groupMember
-      Log(LOG_LEVEL.TRACE, "%s is in my guild", guildGroupMembers[p])
+      Log(VGT_LOG_LEVEL.TRACE, "%s is in my guild", guildGroupMembers[p])
       p = p + 1
     end
   end
@@ -218,25 +238,19 @@ function TableSize(t)
 end
 
 function PrintAbout()
-  Log(LOG_LEVEL.SYSTEM, "installed version: %s", VERSION)
+  Log(VGT_LOG_LEVEL.SYSTEM, "installed version: %s", VGT_VERSION)
 end
 
 function PrintHelp()
-  Log(LOG_LEVEL.SYSTEM, "Command List:")
-  Log(LOG_LEVEL.SYSTEM, "/vgt about - version information")
-  Log(LOG_LEVEL.SYSTEM, "/vgt loglevel <%s> - set the addon verbosity (%s)", TableToString(LOG_LEVELS, "|"), LOG_LEVELS[logLevel])
-  Log(LOG_LEVEL.SYSTEM, "/vgt dungeontest - sends a dungeon kill test event")
-  Log(LOG_LEVEL.SYSTEM, "/vgt dungeons [timeframeInDays:7] - list of players that killed a dungeon boss within the timeframe")
+  Log(VGT_LOG_LEVEL.SYSTEM, "Command List:")
+  Log(VGT_LOG_LEVEL.SYSTEM, "/vgt about - version information")
+  Log(VGT_LOG_LEVEL.SYSTEM, "/vgt loglevel <%s> - set the addon verbosity (%s)", TableToString(VGT_LOG_LEVELS, "|"), VGT_LOG_LEVELS[logLevel])
+  Log(VGT_LOG_LEVEL.SYSTEM, "/vgt dungeontest - sends a dungeon kill test event")
+  Log(VGT_LOG_LEVEL.SYSTEM, "/vgt dungeons [timeframeInDays:7] - list of players that killed a dungeon boss within the timeframe")
 end
 
-local hasNotifiedNewVersion = false
 function HandleCoreMessageReceivedEvent(prefix, message, _, sender)
   if (prefix ~= MODULE_NAME) then
-    return
-  end
-
-  local module, event = strsplit(":", message)
-  if (module ~= MODULE_NAME) then
     return
   end
 
@@ -245,16 +259,10 @@ function HandleCoreMessageReceivedEvent(prefix, message, _, sender)
     return
   end
 
+  local event, version = strsplit(":", message)
   if (event == "SYNCHRONIZATION_REQUEST") then
-    local message = VERSION
-    Log(LOG_LEVEL.TRACE, "sending %s to %s for %s:SYNCHRONIZATION_REQUEST.", message, sender, MODULE_NAME)
-    ACE:SendCommMessage(MODULE_NAME, message, "WHISPER", sender, "ALERT")
-  else
-    local version = tonumber(message)
-    local myVersion = tonumber(VERSION)
-    if (hasNotifiedNewVersion == false and addonVersion > tonumber(VERSION)) then
-      hasNotifiedNewVersion = true
-      Log(LOG_LEVEL.WARN, "there is a newer version of this addon [%s]", version)
+    if (version == nil and version < tonumber(VGT_VERSION)) then
+      SendChatMessage("There is a newer version of "..VGT_ADDON_NAME.." ("..version.." < "..VGT_VERSION..")", "WHISPER", nil, sender)
     end
   end
 end
@@ -273,10 +281,10 @@ local function OnEvent(_, event)
   if (not loaded and event == "ADDON_LOADED") then
     if (VGT_CONFIGURATION == nil) then
       VGT_CONFIGURATION = {
-        logLevel = LOG.LEVELS[LOG_LEVEL.INFO]
+        logLevel = VGT_LOG.LEVELS[VGT_LOG_LEVEL.INFO]
       }
     end
-    logLevel = DefaultOrSet(LOG.LEVELS[LOG_LEVEL.INFO], VGT_CONFIGURATION.logLevel, 0)
+    logLevel = DefaultOrSet(VGT_LOG.LEVELS[VGT_LOG_LEVEL.INFO], VGT_CONFIGURATION.logLevel, 0)
 
     VGT_Douse_Initialize()
     VGT_Map_Initialize()
@@ -290,8 +298,8 @@ local function OnEvent(_, event)
 
       if (not entered) then
         GuildRoster()
-        ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST", "GUILD")
-        Log(LOG_LEVEL.TRACE, "initialized with version %s", VERSION)
+        ACE:SendCommMessage(MODULE_NAME, "SYNCHRONIZATION_REQUEST:"..VGT_VERSION, "GUILD")
+        Log(VGT_LOG_LEVEL.TRACE, "initialized with version %s", VGT_VERSION)
         entered = true
       end
     end
@@ -313,11 +321,11 @@ local function OnEvent(_, event)
   end
 
 end
-FRAME:RegisterEvent("ADDON_LOADED")
-FRAME:RegisterEvent("PLAYER_ENTERING_WORLD")
-FRAME:RegisterEvent("GUILD_ROSTER_UPDATE")
-FRAME:RegisterEvent("PLAYER_LOGOUT")
-FRAME:SetScript("OnEvent", OnEvent)
+VGT_FRAME:RegisterEvent("ADDON_LOADED")
+VGT_FRAME:RegisterEvent("PLAYER_ENTERING_WORLD")
+VGT_FRAME:RegisterEvent("GUILD_ROSTER_UPDATE")
+VGT_FRAME:RegisterEvent("PLAYER_LOGOUT")
+VGT_FRAME:SetScript("OnEvent", OnEvent)
 
 -- ############################################################
 -- ##### SLASH COMMANDS #######################################
@@ -342,6 +350,6 @@ SlashCmdList["VGT"] = function(message)
   elseif (command == "douse") then
     CheckForDouse()
   else
-    Log(LOG_LEVEL.ERROR, "invalid command - type `/vgt help` for a list of commands")
+    Log(VGT_LOG_LEVEL.ERROR, "invalid command - type `/vgt help` for a list of commands")
   end
 end

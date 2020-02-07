@@ -62,9 +62,9 @@ local CheckLocalDBForBossKill = function(key, value)
   if (MY_EPDB[key] == nil) then
     MY_EPDB[key] = value
   else
-    Log(LOG_LEVEL.WARN, "!! YOUR KILL WAS NOT RECORDED !!")
-    Log(LOG_LEVEL.WARN, "WARN - record %s already exists in local DB. Contact an officer for assistance.", key)
-    Log(LOG_LEVEL.WARN, "!! YOUR KILL WAS NOT RECORDED !!")
+    Log(VGT_LOG_LEVEL.WARN, "!! YOUR KILL WAS NOT RECORDED !!")
+    Log(VGT_LOG_LEVEL.WARN, "WARN - record %s already exists in local DB. Contact an officer for assistance.", key)
+    Log(VGT_LOG_LEVEL.WARN, "!! YOUR KILL WAS NOT RECORDED !!")
   end
 end
 
@@ -73,10 +73,10 @@ local SaveAndSendBossKill = function(key, value)
   if (record == nil or record == "") then
     VGT_EPDB[key] = value
     local message = format("%s;%s", key, value)
-    Log(LOG_LEVEL.DEBUG, "saving %s and sending to guild.", message)
+    Log(VGT_LOG_LEVEL.DEBUG, "saving %s and sending to guild.", message)
     ACE:SendCommMessage(MODULE_NAME, message, "GUILD")
   else
-    Log(LOG_LEVEL.TRACE, "record %s already exists in DB before it could be saved.", message)
+    Log(VGT_LOG_LEVEL.TRACE, "record %s already exists in DB before it could be saved.", message)
   end
 end
 
@@ -92,36 +92,36 @@ local withinDays = function(timestamp, days)
   return false
 end
 
-local ValidateTime = function(timestamp)
+local ValidateTime = function(timestamp, sender)
   if (withinDays(timestamp, 14)) then
     return true
   end
-  Log(LOG_LEVEL.DEBUG, "invalid timestamp %s", TimeStampToDaysFromNow(timestamp))
+  Log(VGT_LOG_LEVEL.DEBUG, "invalid timestamp %s from %s", TimeStampToDaysFromNow(timestamp), Safe(sender))
   return false
 end
 
-local ValidateDungeon = function(dungeon)
+local ValidateDungeon = function(dungeon, sender)
   if (dungeon == "TestDungeon" or TableContains(VGT.dungeons, dungeon)) then
     return true
   end
-  Log(LOG_LEVEL.DEBUG, "invalid dungeon %s", dungeon)
+  Log(VGT_LOG_LEVEL.DEBUG, "invalid dungeon %s from %s", dungeon, Safe(sender))
   return false
 end
 
-local ValidateBoss = function(boss)
+local ValidateBoss = function(boss, sender)
   if (boss == "TestBoss" or TableContains(VGT.bosses, boss)) then
     return true
   end
-  Log(LOG_LEVEL.DEBUG, "invalid boss %s", boss)
+  Log(VGT_LOG_LEVEL.DEBUG, "invalid boss %s from %s", boss, Safe(sender))
   return false
 end
 
-local ValidateGuild = function(guild)
+local ValidateGuild = function(guild, sender)
   local myGuildName = GetMyGuildName()
   if (myGuildName ~= nil and myGuildName == guild) then
     return true
   end
-  Log(LOG_LEVEL.DEBUG, "invalid guild %s", guild)
+  Log(VGT_LOG_LEVEL.DEBUG, "invalid guild %s from %s", guild, Safe(sender))
   return false
 end
 
@@ -138,25 +138,25 @@ local GuildMembersSet = function()
   return guildMembers
 end
 
-local ValidatePlayers = function(guild, players)
+local ValidatePlayers = function(guild, players, sender)
   local playersArray = {strsplit(",", players)}
   local playersSet = ArrayToSet(playersArray)
   if (SubsetCount(playersSet, GuildMembersSet()) > 1) then
     return true
   end
-  Log(LOG_LEVEL.DEBUG, "invalid group %s", players)
+  Log(VGT_LOG_LEVEL.DEBUG, "invalid group %s from %s", players, Safe(sender))
   return false
 end
 
-local ValidateRecord = function(key, value)
+local ValidateRecord = function(key, value, sender)
   if (key ~= nil and key ~= "" and value ~= nil and value ~= "") then
     local module, creatureUID, guildName, players = strsplit(":", key)
     local timestamp, dungeonName, bossName = strsplit(":", value)
-    if (ValidateGuild(guildName) and
-      ValidatePlayers(guildName, players) and
-      ValidateTime(timestamp) and
-      ValidateDungeon(dungeonName) and
-    ValidateBoss(bossName)) then
+    if (ValidateGuild(guildName, sender) and
+      ValidatePlayers(guildName, players, sender) and
+      ValidateTime(timestamp, sender) and
+      ValidateDungeon(dungeonName, sender) and
+    ValidateBoss(bossName, sender)) then
       return true
     end
   end
@@ -166,7 +166,7 @@ end
 CleanDatabase = function()
   for k, v in pairs(VGT_EPDB) do
     if (not ValidateRecord(k, v)) then
-      Log(LOG_LEVEL.DEBUG, "record %s removed for being invalid", k)
+      Log(VGT_LOG_LEVEL.DEBUG, "record %s removed for being invalid", k)
       VGT_EPDB[k] = nil
     end
   end
@@ -193,7 +193,7 @@ end
 
 HandleUnitDeath = function(creatureUID, dungeonName, bossName)
   local timestamp = GetServerTime()
-  Log(LOG_LEVEL.TRACE, "killed %s in %s.", bossName, dungeonName)
+  Log(VGT_LOG_LEVEL.TRACE, "killed %s in %s.", bossName, dungeonName)
   local guildName = GetGuildInfo("player")
   local groupedGuildies = CheckGroupForGuildies()
   if (guildName ~= nil) then
@@ -201,16 +201,16 @@ HandleUnitDeath = function(creatureUID, dungeonName, bossName)
       local playerName = UnitName("player")
       table.insert(groupedGuildies, playerName)
       local groupedGuildiesStr = TableToString(groupedGuildies, ",", false, true)
-      Log(LOG_LEVEL.INFO, "killed %s in %s as a guild with %s", bossName, dungeonName, groupedGuildiesStr)
+      Log(VGT_LOG_LEVEL.INFO, "killed %s in %s as a guild with %s", bossName, dungeonName, groupedGuildiesStr)
       local key = format("%s:%s:%s:%s", MODULE_NAME, creatureUID, guildName, groupedGuildiesStr)
       local value = format("%s:%s:%s", timestamp, dungeonName, bossName)
       CheckLocalDBForBossKill(key, value)
       SaveAndSendBossKill(key, value)
     else
-      Log(LOG_LEVEL.DEBUG, "skipping boss kill event because you are not in a group with any guild members of %s", guildName)
+      Log(VGT_LOG_LEVEL.DEBUG, "skipping boss kill event because you are not in a group with any guild members of %s", guildName)
     end
   else
-    Log(LOG_LEVEL.DEBUG, "skipping boss kill event because you are not in a guild")
+    Log(VGT_LOG_LEVEL.DEBUG, "skipping boss kill event because you are not in a guild")
   end
 end
 
@@ -245,7 +245,10 @@ function HandleEPMessageReceivedEvent(prefix, message, distribution, sender)
     return
   end
 
-  local module, event = strsplit(":", message)
+  local module, event, count = strsplit(":", message)
+  if (count == nil) then
+    count = 0
+  end
   if (module ~= MODULE_NAME) then
     return
   end
@@ -257,23 +260,25 @@ function HandleEPMessageReceivedEvent(prefix, message, distribution, sender)
 
   if (distribution == "GUILD") then
     if (event == "SYNCHRONIZATION_REQUEST") then
-      for k, v in pairs(VGT_EPDB) do
-        local message = format("%s;%s", k, v)
-        Log(LOG_LEVEL.TRACE, "sending %s to %s for %s:SYNCHRONIZATION_REQUEST.", message, sender, MODULE_NAME)
-        ACE:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
+      if (count ~= Count(VGT_EPDB)) then
+        for k, v in pairs(VGT_EPDB) do
+          local message = format("%s;%s", k, v)
+          Log(VGT_LOG_LEVEL.TRACE, "sending %s to %s for %s:SYNCHRONIZATION_REQUEST.", message, sender, MODULE_NAME)
+          ACE:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
+        end
       end
     else
       local key, value = strsplit(";", message)
       local record = VGT_EPDB[key]
       if (record == nil or record == "") then
-        if (ValidateRecord(key, value)) then
-          Log(LOG_LEVEL.DEBUG, "saving record %s from %s.", message, sender)
+        if (ValidateRecord(key, value, sender)) then
+          Log(VGT_LOG_LEVEL.DEBUG, "saving record %s from %s.", message, sender)
           VGT_EPDB[key] = value
         else
-          Log(LOG_LEVEL.TRACE, "record %s from %s is invalid to recieve.", value, sender)
+          Log(VGT_LOG_LEVEL.TRACE, "record %s from %s is invalid to recieve.", value, sender)
         end
       else
-        Log(LOG_LEVEL.TRACE, "record %s from %s already exists in DB.", message, sender)
+        Log(VGT_LOG_LEVEL.TRACE, "record %s from %s already exists in DB.", message, sender)
       end
     end
   end
@@ -285,5 +290,5 @@ function VGT_EP_Initialize()
   end
   CleanDatabase()
   ACE:RegisterComm(MODULE_NAME, HandleEPMessageReceivedEvent)
-  ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST", "GUILD")
+  ACE:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST:"..Count(VGT_EPDB), "GUILD")
 end
