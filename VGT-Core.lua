@@ -1,44 +1,47 @@
 VGT_ADDON_NAME, VGT = ...
-VGT_VERSION = GetAddOnMetadata(VGT_ADDON_NAME, "Version")
-local MODULE_NAME = "VGT-Core"
-local LIB = LibStub("AceAddon-3.0"):NewAddon(MODULE_NAME,
+VGT.VERSION = GetAddOnMetadata(VGT_ADDON_NAME, "Version")
+VGT.LIBS = LibStub("AceAddon-3.0"):NewAddon(VGT_ADDON_NAME,
 "AceComm-3.0", "AceTimer-3.0", "AceEvent-3.0")
-local VGT_FRAME = CreateFrame("Frame")
+VGT.LIBS.HBD = LibStub("HereBeDragons-2.0")
+VGT.LIBS.HBDP = LibStub("HereBeDragons-Pins-2.0")
+local MODULE_NAME = "VGT-Core"
+VGT.CORE_FRAME = CreateFrame("Frame")
 
 -- ############################################################
 -- ##### LOCAL FUNCTIONS ######################################
 -- ############################################################
 
-local HandleInstanceChangeEvent = function()
+local handleInstanceChangeEvent = function()
   local _, instanceType, _, _, _, _, _, instanceID, _, _ = GetInstanceInfo()
   if (instanceType == "party" or instanceType == "raid") then
     local dungeonName = VGT.dungeons[tonumber(instanceID)]
     if (dungeonName ~= nil) then
-      Log(VGT_LOG_LEVEL.INFO, "Started logging for %s, goodluck!", dungeonName)
-      VGT_FRAME:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+      VGT.Log(VGT.LOG_LEVEL.INFO, "Started logging for %s, goodluck!", dungeonName)
+      VGT.CORE_FRAME:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     else
-      Log(VGT_LOG_LEVEL.DEBUG, "Entered %s(%s) but it is not a tracked dungeon.", dungeonName, instanceID)
+      VGT.Log(VGT.LOG_LEVEL.DEBUG, "Entered %s(%s) but it is not a tracked dungeon.", dungeonName, instanceID)
     end
   else
-    VGT_FRAME:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+    VGT.CORE_FRAME:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
   end
 end
 
 -- ############################################################
 -- ##### GLOBAL FUNCTIONS #####################################
 -- ############################################################
-function Round(number, decimals)
+
+function VGT.Round(number, decimals)
   return (("%%.%df"):format(decimals)):format(number)
 end
 
-function Safe(s)
+function VGT.Safe(s)
   if (s == nil) then
     return ""
   end
   return s
 end
 
-function Count(t)
+function VGT.Count(t)
   local c = 0
   if (t == nil) then
     return c
@@ -52,7 +55,7 @@ function Count(t)
   return c
 end
 
-function ArrayToSet(array)
+function VGT.ArrayToSet(array)
   local t = {}
   for _, item in pairs(array) do
     t[item] = true
@@ -60,7 +63,7 @@ function ArrayToSet(array)
   return t
 end
 
-function SubsetCount(a, b)
+function VGT.SubsetCount(a, b)
   local c = 0
   for k, _ in pairs(a) do
     if (b[k]) then
@@ -70,7 +73,7 @@ function SubsetCount(a, b)
   return c
 end
 
-function StringAppend(...)
+function VGT.StringAppend(...)
   local args = {...}
   local str = ""
   for _, v in ipairs(args) do
@@ -81,7 +84,7 @@ function StringAppend(...)
   return str
 end
 
-function TableJoinToArray(a, b)
+function VGT.TableJoinToArray(a, b)
   local nt = {}
   for _, v in pairs(a) do
     nt[v] = v
@@ -92,11 +95,11 @@ function TableJoinToArray(a, b)
   return nt
 end
 
-function TableKeysToString(t, d)
-  return TableToString(t, d, true)
+function VGT.TableKeysToString(t, d)
+  return VGT.TableToString(t, d, true)
 end
 
-function TableToString(t, d, keys, sort, line)
+function VGT.TableToString(t, d, keys, sort, line)
   local s = ""
 
   if (t == nil) then
@@ -120,7 +123,7 @@ function TableToString(t, d, keys, sort, line)
   for k, v in pairs(t) do
     s = s..d
     if (type(v) == "table") then
-      s = s..TableToString(v, d, keys, sort, line)
+      s = s..VGT.TableToString(v, d, keys, sort, line)
     else
       local c = nil
       if (keys) then
@@ -143,7 +146,7 @@ function TableToString(t, d, keys, sort, line)
   end
 end
 
-function TableContains(t, m)
+function VGT.TableContains(t, m)
   if (t == nil) then
     return false
   end
@@ -157,12 +160,12 @@ function TableContains(t, m)
   return false
 end
 
-function RandomUUID()
+function VGT.RandomUUID()
   local template = 'xxxxxxxx'
   return string.gsub(template, '[xy]', function (c) local v = (c == 'x') and math.random(0, 0xf) or math.random(8, 0xb) return string.format('%x', v) end)
 end
 
-function GetMyGuildName()
+function VGT.GetMyGuildName()
   if (IsInGuild()) then
     return GetGuildInfo("player")
   else
@@ -170,7 +173,7 @@ function GetMyGuildName()
   end
 end
 
-function IsInMyGuild(playerName)
+function VGT.IsInMyGuild(playerName)
   if (playerName == nil) then
     return false
   end
@@ -180,7 +183,7 @@ function IsInMyGuild(playerName)
     return false
   end
 
-  local myGuildName = GetMyGuildName()
+  local myGuildName = VGT.GetMyGuildName()
   if (myGuildName == nil) then
     return false
   end
@@ -192,7 +195,7 @@ function IsInMyGuild(playerName)
   return false
 end
 
-function CheckGroupForGuildies()
+function VGT.CheckGroupForGuildies()
   if (IsInGroup() ~= true) then
     return nil
   end
@@ -202,16 +205,16 @@ function CheckGroupForGuildies()
   local p = 0
   for i = 0, GetNumGroupMembers() do
     local groupMember = groupMembers[i]
-    if (IsInMyGuild(groupMember)) then
+    if (VGT.IsInMyGuild(groupMember)) then
       guildGroupMembers[p] = groupMember
-      Log(VGT_LOG_LEVEL.TRACE, "%s is in my guild", guildGroupMembers[p])
+      VGT.Log(VGT.LOG_LEVEL.TRACE, "%s is in my guild", guildGroupMembers[p])
       p = p + 1
     end
   end
   return guildGroupMembers
 end
 
-function TableSize(t)
+function VGT.TableSize(t)
   if (t == nil) then
     return 0
   end
@@ -229,20 +232,21 @@ function TableSize(t)
   return c
 end
 
-function PrintAbout()
-  Log(VGT_LOG_LEVEL.SYSTEM, "installed version: %s", VGT_VERSION)
+function VGT.PrintAbout()
+  VGT.Log(VGT.LOG_LEVEL.SYSTEM, "installed version: %s", VGT.VERSION)
 end
 
-function PrintHelp()
-  Log(VGT_LOG_LEVEL.SYSTEM, "Command List:")
-  Log(VGT_LOG_LEVEL.SYSTEM, "/vgt about - version information")
-  Log(VGT_LOG_LEVEL.SYSTEM, "/vgt loglevel <%s> - set the addon verbosity (%s)", TableToString(VGT_LOG_LEVELS, "|"), VGT_LOG_LEVELS[logLevel])
-  Log(VGT_LOG_LEVEL.SYSTEM, "/vgt dungeontest - sends a dungeon kill test event")
-  Log(VGT_LOG_LEVEL.SYSTEM, "/vgt dungeons [timeframeInDays:7] - list of players that killed a dungeon boss within the timeframe")
+function VGT.PrintHelp()
+  VGT.Log(VGT.LOG_LEVEL.SYSTEM, "Command List:")
+  VGT.Log(VGT.LOG_LEVEL.SYSTEM, "/vgt about - version information")
+  VGT.Log(VGT.LOG_LEVEL.SYSTEM, "/vgt loglevel <%s> - set the addon verbosity (%s)", VGT.TableToString(VGT.LOG_LEVELS, "|"), VGT.LOG_LEVELS[logLevel])
+  VGT.Log(VGT.LOG_LEVEL.SYSTEM, "/vgt dungeontest - sends a dungeon kill test event")
+  VGT.Log(VGT.LOG_LEVEL.SYSTEM, "/vgt dungeons [timeframeInDays:7] - list of players that killed a dungeon boss within the timeframe")
 end
 
+local warned = false
 local warnedPlayers = {}
-function HandleCoreMessageReceivedEvent(prefix, message, _, sender)
+local handleCoreMessageReceivedEvent = function(prefix, message, _, sender)
   if (prefix ~= MODULE_NAME) then
     return
   end
@@ -254,14 +258,19 @@ function HandleCoreMessageReceivedEvent(prefix, message, _, sender)
 
   local event, version = strsplit(":", message)
   if (event == "SYNCHRONIZATION_REQUEST") then
-    if (not warnedPlayers[sender] and version ~= nil and tonumber(version) < tonumber(VGT_VERSION)) then
-      SendChatMessage("There is a newer version of "..VGT_ADDON_NAME.." (yours "..version.." < mine "..VGT_VERSION..")", "WHISPER", nil, sender)
+    if (not warnedPlayers[sender] and version ~= nil and tonumber(version) < tonumber(VGT.VERSION)) then
+      VGT.LIBS:SendCommMessage(MODULE_NAME, "VERSION:"..VERSION, "WHISPER", sender)
       warnedPlayers[sender] = true
+    end
+  elseif (event == "VERSION") then
+    if (not warned and tonumber(VGT.VERSION) < tonumber(version)) then
+      VGT.Log(VGT.LOG_LEVEL.WARN, "there is a newer version of this addon")
+      warned = true
     end
   end
 end
 
-local function DefaultOrSet(default, value1, value2)
+local function defaultOrSet(default, value1, value2)
   if (value1 == nil or value1 == value2) then
     return default
   end
@@ -271,55 +280,55 @@ end
 local loaded = false
 local entered = false
 local rostered = false
-local function OnEvent(_, event)
+local function onEvent(_, event)
   if (not loaded and event == "ADDON_LOADED") then
-    if (VGT_CONFIGURATION == nil) then
-      VGT_CONFIGURATION = {
-        logLevel = VGT_LOG.LEVELS[VGT_LOG_LEVEL.INFO]
+    if (VGT.CONFIGURATION == nil) then
+      VGT.CONFIGURATION = {
+        logLevel = VGT.LOG.LEVELS[VGT.LOG_LEVEL.INFO]
       }
     end
-    logLevel = DefaultOrSet(VGT_LOG.LEVELS[VGT_LOG_LEVEL.INFO], VGT_CONFIGURATION.logLevel, 0)
+    logLevel = defaultOrSet(VGT.LOG.LEVELS[VGT.LOG_LEVEL.INFO], VGT.CONFIGURATION.logLevel, 0)
 
-    VGT_Douse_Initialize()
-    VGT_Map_Initialize()
-    LIB:RegisterComm(MODULE_NAME, HandleCoreMessageReceivedEvent)
+    VGT.Douse_Initialize()
+    VGT.Map_Initialize()
+    VGT.LIBS:RegisterComm(MODULE_NAME, handleCoreMessageReceivedEvent)
     loaded = true
   end
 
   if (loaded) then
     if (event == "PLAYER_ENTERING_WORLD") then
-      HandleInstanceChangeEvent(event)
+      handleInstanceChangeEvent(event)
 
       if (not entered) then
         GuildRoster()
-        LIB:SendCommMessage(MODULE_NAME, "SYNCHRONIZATION_REQUEST:"..VGT_VERSION, "GUILD")
-        Log(VGT_LOG_LEVEL.TRACE, "initialized with version %s", VGT_VERSION)
+        VGT.LIBS:SendCommMessage(MODULE_NAME, "SYNCHRONIZATION_REQUEST:"..VGT.VERSION, "GUILD")
+        VGT.Log(VGT.LOG_LEVEL.TRACE, "initialized with version %s", VGT.VERSION)
         entered = true
       end
     end
 
     if (not rostered and event == "GUILD_ROSTER_UPDATE") then
       if (IsInGuild()) then
-        LIB:ScheduleTimer(VGT_EP_Initialize, 5)
+        VGT.LIBS:ScheduleTimer(VGT.EP_Initialize, 1)
         rostered = true
       end
     end
 
     if (event == "COMBAT_LOG_EVENT_UNFILTERED") then
-      HandleCombatLogEvent(event)
+      VGT.HandleCombatLogEvent(event)
     end
 
     if (event == "PLAYER_LOGOUT") then
-      VGT_CONFIGURATION.logLevel = logLevel
+      VGT.CONFIGURATION.logLevel = logLevel
     end
   end
 
 end
-VGT_FRAME:RegisterEvent("ADDON_LOADED")
-VGT_FRAME:RegisterEvent("PLAYER_ENTERING_WORLD")
-VGT_FRAME:RegisterEvent("GUILD_ROSTER_UPDATE")
-VGT_FRAME:RegisterEvent("PLAYER_LOGOUT")
-VGT_FRAME:SetScript("OnEvent", OnEvent)
+VGT.CORE_FRAME:RegisterEvent("ADDON_LOADED")
+VGT.CORE_FRAME:RegisterEvent("PLAYER_ENTERING_WORLD")
+VGT.CORE_FRAME:RegisterEvent("GUILD_ROSTER_UPDATE")
+VGT.CORE_FRAME:RegisterEvent("PLAYER_LOGOUT")
+VGT.CORE_FRAME:SetScript("OnEvent", onEvent)
 
 -- ############################################################
 -- ##### SLASH COMMANDS #######################################
@@ -329,21 +338,19 @@ SLASH_VGT1 = "/vgt"
 SlashCmdList["VGT"] = function(message)
   local command, arg1 = strsplit(" ", message)
   if (command == "" or command == "help") then
-    PrintHelp()
+    VGT.PrintHelp()
     return
   end
 
   if (command == "about") then
-    PrintAbout()
+    VGT.PrintAbout()
   elseif (command == "loglevel") then
-    SetLogLevel(arg1)
-  elseif (command == "dungeontest") then
-    HandleUnitDeath("TEST"..RandomUUID(), "TestDungeon", "TestBoss")
+    VGT.SetLogLevel(arg1)
   elseif (command == "dungeons") then
-    PrintDungeonList(tonumber(arg1), VGT.debug)
+    VGT.PrintDungeonList(tonumber(arg1), false)
   elseif (command == "douse") then
-    CheckForDouse()
+    VGT.CheckForDouse()
   else
-    Log(VGT_LOG_LEVEL.ERROR, "invalid command - type `/vgt help` for a list of commands")
+    VGT.Log(VGT.LOG_LEVEL.ERROR, "invalid command - type `/vgt help` for a list of commands")
   end
 end

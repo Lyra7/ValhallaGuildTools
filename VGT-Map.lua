@@ -1,8 +1,4 @@
 local MODULE_NAME = "VGT-Map"
-local LIB = LibStub("AceAddon-3.0"):NewAddon(MODULE_NAME,
-"AceComm-3.0", "AceTimer-3.0")
-local HBD = LibStub("HereBeDragons-2.0")
-local HBDP = LibStub("HereBeDragons-Pins-2.0")
 
 local UPDATE_SPEED = 6
 local BUFFER_STEP = 10
@@ -44,37 +40,39 @@ local NAME_INDEX = 1
 local sendMyLocation = function()
   local playerName = UnitName(PLAYER)
   local _, _, _, _, _, _, _, instanceMapId = GetInstanceInfo()
-  local x, y = HBD:GetPlayerWorldPosition()
+  local x, y = VGT.LIBS.HBD:GetPlayerWorldPosition()
   local hp = UnitHealth(PLAYER) / UnitHealthMax(PLAYER)
   if (playerName ~= nil and instanceMapId ~= nil and x ~= nil and y ~= nil and hp ~= nil) then
     local data = playerName..DELIMITER..instanceMapId..DELIMITER..x..DELIMITER..y..DELIMITER..hp
     if (IsInGuild()) then
-      LIB:SendCommMessage(MODULE_NAME, data, GUILD, nil, BULK)
+      VGT.LIBS:SendCommMessage(MODULE_NAME, data, GUILD, nil, BULK)
     end
   end
 end
 
-local findClosePlayers = function(x, y)
+local findClosePlayers = function(x, y, name)
   local closePlayers = NEW_LINE
   for k, v in pairs(players) do
-    if (abs(x - v[X_INDEX]) + abs(y - v[Y_INDEX]) < 50) then
-      closePlayers = closePlayers..k..HP_SEPERATOR..Round(v[HP_INDEX] * 100, 0)..PERCENT..NEW_LINE
+    if (name == nil or name ~= k) then
+      if (abs(x - v[X_INDEX]) + abs(y - v[Y_INDEX]) < 50) then
+        closePlayers = closePlayers..k..HP_SEPERATOR..VGT.Round(v[HP_INDEX] * 100, 0)..PERCENT..NEW_LINE
+      end
     end
   end
   return closePlayers
 end
 
 local onEnterPin = function(self)
-  local x, y = self:GetCenter()
+  local uiX, uiY = self:GetCenter()
   local parentX, parentY = UIParent:GetCenter()
-  if (x > parentX) then
+  if (uiX > parentX) then
     GameTooltip:SetOwner(self, ANCHOR_LEFT)
   else
     GameTooltip:SetOwner(self, ANCHOR_RIGHT)
   end
 
   local name = pins[self][NAME_INDEX]
-  GameTooltip:SetText(name..HP_SEPERATOR..Round(players[name][6] * 100, 0)..PERCENT..findClosePlayers(x, y))
+  GameTooltip:SetText(name..HP_SEPERATOR..VGT.Round(players[name][HP_INDEX] * 100, 0)..PERCENT..findClosePlayers(players[name][X_INDEX], players[name][Y_INDEX], name))
   GameTooltip:Show()
 end
 
@@ -94,7 +92,7 @@ local cleanPins = function()
   for k, v in pairs(players) do
     if (not guildMembersOnline[k]) then
       local pin = players[k][PIN_INDEX]
-      HBDP:RemoveWorldMapIcon(MODULE_NAME, pin)
+      VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, pin)
       players[k][NAME_INDEX] = false
     end
   end
@@ -107,7 +105,7 @@ local updatePins = function()
     local w, h = WorldFrame:GetWidth(), WorldFrame:GetHeight()
     for k, v in pairs(players) do
       if ((v[ACTIVE_INDEX] == nil or v[ACTIVE_INDEX]) and v[PIN_INDEX] ~= nil and v[MAP_ID_INDEX] ~= nil and v[X_INDEX] ~= nil and v[Y_INDEX] ~= nil) then
-        HBDP:AddWorldMapIconWorld(MODULE_NAME, v[PIN_INDEX], tonumber(v[MAP_ID_INDEX]), tonumber(v[X_INDEX]), tonumber(v[Y_INDEX]), 3)
+        VGT.LIBS.HBDP:AddWorldMapIconWorld(MODULE_NAME, v[PIN_INDEX], tonumber(v[MAP_ID_INDEX]), tonumber(v[X_INDEX]), tonumber(v[Y_INDEX]), 3)
       end
     end
   end
@@ -130,7 +128,7 @@ local createBufferPins = function()
 end
 
 local findPin = function()
-  for i = 1, Count(bufferPins) do
+  for i = 1, VGT.Count(bufferPins) do
     if (bufferPins[i] ~= nil) then
       local pin = bufferPins[i]
       bufferPins[i] = nil
@@ -173,8 +171,8 @@ end
 -- ##### GLOBAL FUNCTIONS #####################################
 -- ############################################################
 
-function VGT_Map_Initialize()
+function VGT.Map_Initialize()
   createBufferPins()
-  LIB:RegisterComm(MODULE_NAME, handleMapMessageReceivedEvent)
-  LIB:ScheduleRepeatingTimer(updatePins, UPDATE_SPEED)
+  VGT.LIBS:RegisterComm(MODULE_NAME, handleMapMessageReceivedEvent)
+  VGT.LIBS:ScheduleRepeatingTimer(updatePins, UPDATE_SPEED)
 end

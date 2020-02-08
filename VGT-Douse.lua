@@ -1,26 +1,20 @@
 local MODULE_NAME = "VGT-Douse"
-local LIB = LibStub("AceAddon-3.0"):NewAddon(MODULE_NAME,
-"AceComm-3.0", "AceTimer-3.0", "AceEvent-3.0")
 
 -- ############################################################
 -- ##### LOCAL FUNCTIONS ######################################
 -- ############################################################
 
--- ############################################################
--- ##### GLOBAL FUNCTIONS #####################################
--- ############################################################
-
 local isTiming = false
 local douses = {}
-local PrintDouseCount = function()
-  Log(VGT_LOG_LEVEL.SYSTEM, "Raid members with Aqual Quintessences:")
-  Log(VGT_LOG_LEVEL.SYSTEM, "%s", TableToString(douses))
-  Log(VGT_LOG_LEVEL.SYSTEM, "The raid has %s Aqual Quintessences.", TableSize(douses))
+local printDouseCount = function()
+  VGT.Log(VGT.LOG_LEVEL.SYSTEM, "Raid members with Aqual Quintessences:")
+  VGT.Log(VGT.LOG_LEVEL.SYSTEM, "%s", VGT.TableToString(douses))
+  VGT.Log(VGT.LOG_LEVEL.SYSTEM, "The raid has %s Aqual Quintessences.", VGT.TableSize(douses))
 
   isTiming = false
 end
 
-function HandleDouseMessageReceivedEvent(prefix, message, distribution, sender)
+local handleDouseMessageReceivedEvent = function(prefix, message, distribution, sender)
   if (prefix ~= MODULE_NAME) then
     return
   end
@@ -37,8 +31,8 @@ function HandleDouseMessageReceivedEvent(prefix, message, distribution, sender)
 
   if (distribution == "RAID") then
     if (event == "SYNCHRONIZATION_REQUEST") then
-      if (HasDouse()) then
-        LIB:SendCommMessage(MODULE_NAME, MODULE_NAME..":HAS_DOUSE", "WHISPER", sender)
+      if (hasDouse()) then
+        VGT.LIBS:SendCommMessage(MODULE_NAME, MODULE_NAME..":HAS_DOUSE", "WHISPER", sender)
       end
     end
   end
@@ -49,22 +43,7 @@ function HandleDouseMessageReceivedEvent(prefix, message, distribution, sender)
   end
 end
 
-function CheckForDouse()
-  douses = {}
-  Log(VGT_LOG_LEVEL.SYSTEM, "Checking the raid for Aqual Quintessences, please wait...")
-  LIB:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST", "RAID")
-  if (not isTiming) then
-    LIB:ScheduleTimer(PrintDouseCount, 5)
-  end
-  isTiming = true
-
-  if (HasDouse()) then
-    local playerName = UnitName("player")
-    douses[playerName] = playerName
-  end
-end
-
-function HasDouse()
+local hasDouse = function()
   for bagIndex = 0, 4 do
     local slots = GetContainerNumSlots(bagIndex)
     for slotIndex = 0, slots do
@@ -80,6 +59,25 @@ function HasDouse()
   return false
 end
 
-function VGT_Douse_Initialize()
-  LIB:RegisterComm(MODULE_NAME, HandleDouseMessageReceivedEvent)
+-- ############################################################
+-- ##### GLOBAL FUNCTIONS #####################################
+-- ############################################################
+
+VGT.CheckForDouse = function ()
+  douses = {}
+  VGT.Log(VGT.LOG_LEVEL.SYSTEM, "Checking the raid for Aqual Quintessences, please wait...")
+  VGT.LIBS:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST", "RAID")
+  if (not isTiming) then
+    VGT.LIBS:ScheduleTimer(printDouseCount, 5)
+  end
+  isTiming = true
+
+  if (hasDouse()) then
+    local playerName = UnitName("player")
+    douses[playerName] = playerName
+  end
+end
+
+VGT.Douse_Initialize = function()
+  VGT.LIBS:RegisterComm(MODULE_NAME, handleDouseMessageReceivedEvent)
 end
