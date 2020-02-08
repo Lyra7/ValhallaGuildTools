@@ -259,7 +259,7 @@ local handleCoreMessageReceivedEvent = function(prefix, message, _, sender)
   local event, version = strsplit(":", message)
   if (event == "SYNCHRONIZATION_REQUEST") then
     if (not warnedPlayers[sender] and version ~= nil and tonumber(version) < tonumber(VGT.VERSION)) then
-      VGT.LIBS:SendCommMessage(MODULE_NAME, "VERSION:"..VERSION, "WHISPER", sender)
+      VGT.LIBS:SendCommMessage(MODULE_NAME, "VERSION:"..VGT.VERSION, "WHISPER", sender)
       warnedPlayers[sender] = true
     end
   elseif (event == "VERSION") then
