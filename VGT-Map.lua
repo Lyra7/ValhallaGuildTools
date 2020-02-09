@@ -1,6 +1,5 @@
 local MODULE_NAME = "VGT-Map"
 
-local UPDATE_SPEED = 6
 local BUFFER_STEP = 10
 local bufferPins = {}
 local players = {}
@@ -38,14 +37,16 @@ local NAME_INDEX = 1
 -- ############################################################
 
 local sendMyLocation = function()
-  local playerName = UnitName(PLAYER)
-  local _, _, _, _, _, _, _, instanceMapId = GetInstanceInfo()
-  local x, y = VGT.LIBS.HBD:GetPlayerWorldPosition()
-  local hp = UnitHealth(PLAYER) / UnitHealthMax(PLAYER)
-  if (playerName ~= nil and instanceMapId ~= nil and x ~= nil and y ~= nil and hp ~= nil) then
-    local data = playerName..DELIMITER..instanceMapId..DELIMITER..x..DELIMITER..y..DELIMITER..hp
-    if (IsInGuild()) then
-      VGT.LIBS:SendCommMessage(MODULE_NAME, data, GUILD, nil, BULK)
+  if (VGT.OPTIONS.MAP.sendMyLocation) then
+    local playerName = UnitName(PLAYER)
+    local _, _, _, _, _, _, _, instanceMapId = GetInstanceInfo()
+    local x, y = VGT.LIBS.HBD:GetPlayerWorldPosition()
+    local hp = UnitHealth(PLAYER) / UnitHealthMax(PLAYER)
+    if (playerName ~= nil and instanceMapId ~= nil and x ~= nil and y ~= nil and hp ~= nil) then
+      local data = playerName..DELIMITER..instanceMapId..DELIMITER..x..DELIMITER..y..DELIMITER..hp
+      if (IsInGuild()) then
+        VGT.LIBS:SendCommMessage(MODULE_NAME, data, GUILD, nil, BULK)
+      end
     end
   end
 end
@@ -172,7 +173,9 @@ end
 -- ############################################################
 
 function VGT.Map_Initialize()
-  createBufferPins()
-  VGT.LIBS:RegisterComm(MODULE_NAME, handleMapMessageReceivedEvent)
-  VGT.LIBS:ScheduleRepeatingTimer(updatePins, UPDATE_SPEED)
+  if (VGT.OPTIONS.MAP.enabled) then
+    createBufferPins()
+    VGT.LIBS:RegisterComm(MODULE_NAME, handleMapMessageReceivedEvent)
+    VGT.LIBS:ScheduleRepeatingTimer(updatePins, VGT.OPTIONS.MAP.updateSpeed)
+  end
 end

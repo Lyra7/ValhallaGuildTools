@@ -8,8 +8,7 @@ local CleanDatabase = CreateFrame("Frame");
 
 -- Create a list of unique players sorted alphabetically that were found in the EPDB
 --	timeframeInDays: default 7, controls how long ago to look for records in the EPDB
--- 	includeTests: default false, controls whether or not test records are included
-local constructPlayerTableFromHistory = function(timeframeInDays, includeTests)
+local constructPlayerTableFromHistory = function(timeframeInDays)
   if (timeframeInDays == nil or timeframeInDays <= 0) then
     timeframeInDays = 7
   end
@@ -35,11 +34,7 @@ local constructPlayerTableFromHistory = function(timeframeInDays, includeTests)
           local localPlayersTable = {}
 
           -- Ignore test records if the flag is false
-          if (string.match(uid, "TEST")) then
-            if (includeTests) then
-              localPlayersTable = {strsplit(",", players)}
-            end
-          else
+          if (not string.match(uid, "TEST")) then
             localPlayersTable = {strsplit(",", players)}
           end
 
@@ -225,7 +220,7 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
   local module, event, count = strsplit(":", message)
   if (count == nil) then
     count = 0
-    end
+  end
 
   if (module ~= MODULE_NAME) then
     return
@@ -268,17 +263,18 @@ end
 
 -- Print the list of players who did dungeons within the timeframe
 --	timeframeInDays: default 7, controls how long ago to look for records in the EPDB
--- 	includeTests: default false, controls whether or not test records are included
-VGT.PrintDungeonList = function(timeframeInDays, includeTests)
-  local str = VGT.TableToString(constructPlayerTableFromHistory(timeframeInDays, includeTests), "", false, true, true)
-  VGT_DUNGEONS_FRAME:Show();
-  VGT_DUNGEONS_FRAME_SCROLL:Show()
-  VGT_DUNGEONS_FRAME_TEXT:Show()
-  VGT_DUNGEONS_FRAME_TEXT:SetText(str)
-  VGT_DUNGEONS_FRAME_TEXT:HighlightText()
+VGT.PrintDungeonList = function(timeframeInDays)
+  if (VGT.OPTIONS.EP.enabled) then
+    local str = VGT.TableToString(constructPlayerTableFromHistory(timeframeInDays), "", false, true, true)
+    VGT_DUNGEONS_FRAME:Show();
+    VGT_DUNGEONS_FRAME_SCROLL:Show()
+    VGT_DUNGEONS_FRAME_TEXT:Show()
+    VGT_DUNGEONS_FRAME_TEXT:SetText(str)
+    VGT_DUNGEONS_FRAME_TEXT:HighlightText()
 
-  VGT_DUNGEONS_FRAME_BUTTON:SetScript("OnClick", function(self) VGT_DUNGEONS_FRAME:Hide() end)
-  VGT_DUNGEONS_FRAME_TEXT:SetScript("OnEscapePressed", function(self) self:GetParent():GetParent():Hide() end)
+    VGT_DUNGEONS_FRAME_BUTTON:SetScript("OnClick", function(self) VGT_DUNGEONS_FRAME:Hide() end)
+    VGT_DUNGEONS_FRAME_TEXT:SetScript("OnEscapePressed", function(self) self:GetParent():GetParent():Hide() end)
+  end
 end
 
 -- TODO make this local and make loaded vars global
@@ -297,10 +293,12 @@ VGT.HandleCombatLogEvent = function()
 end
 
 VGT.EP_Initialize = function()
-  if (VGT_EPDB == nil) then
-    VGT_EPDB = {}
+  if (VGT.OPTIONS.EP.enabled) then
+    if (VGT_EPDB == nil) then
+      VGT_EPDB = {}
+    end
+    CleanDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate) CleanDatabase:onUpdate(sinceLastUpdate) end)
+    VGT.LIBS:RegisterComm(MODULE_NAME, handleEPMessageReceivedEvent)
+    VGT.LIBS:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST:"..VGT.Count(VGT_EPDB), "GUILD")
   end
-  CleanDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate) CleanDatabase:onUpdate(sinceLastUpdate) end)
-  VGT.LIBS:RegisterComm(MODULE_NAME, handleEPMessageReceivedEvent)
-  VGT.LIBS:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST:"..VGT.Count(VGT_EPDB), "GUILD")
 end

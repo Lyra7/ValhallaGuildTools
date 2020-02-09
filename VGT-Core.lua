@@ -239,8 +239,6 @@ end
 function VGT.PrintHelp()
   VGT.Log(VGT.LOG_LEVEL.SYSTEM, "Command List:")
   VGT.Log(VGT.LOG_LEVEL.SYSTEM, "/vgt about - version information")
-  VGT.Log(VGT.LOG_LEVEL.SYSTEM, "/vgt loglevel <%s> - set the addon verbosity (%s)", VGT.TableToString(VGT.LOG_LEVELS, "|"), VGT.LOG_LEVELS[logLevel])
-  VGT.Log(VGT.LOG_LEVEL.SYSTEM, "/vgt dungeontest - sends a dungeon kill test event")
   VGT.Log(VGT.LOG_LEVEL.SYSTEM, "/vgt dungeons [timeframeInDays:7] - list of players that killed a dungeon boss within the timeframe")
 end
 
@@ -270,59 +268,45 @@ local handleCoreMessageReceivedEvent = function(prefix, message, _, sender)
   end
 end
 
-local function defaultOrSet(default, value1, value2)
-  if (value1 == nil or value1 == value2) then
-    return default
-  end
-  return value1
-end
-
 local loaded = false
 local entered = false
 local rostered = false
 local function onEvent(_, event)
   if (not loaded and event == "ADDON_LOADED") then
-    if (VGT.CONFIGURATION == nil) then
-      VGT.CONFIGURATION = {
-        logLevel = VGT.LOG.LEVELS[VGT.LOG_LEVEL.INFO]
-      }
-    end
-    logLevel = defaultOrSet(VGT.LOG.LEVELS[VGT.LOG_LEVEL.INFO], VGT.CONFIGURATION.logLevel, 0)
-
-    VGT.Douse_Initialize()
-    VGT.Map_Initialize()
-    VGT.LIBS:RegisterComm(MODULE_NAME, handleCoreMessageReceivedEvent)
+    VGT.OPTIONS = VGT.DefaultConfig(VGT_OPTIONS)
     loaded = true
   end
 
-  if (loaded) then
-    if (event == "PLAYER_ENTERING_WORLD") then
-      handleInstanceChangeEvent(event)
-
-      if (not entered) then
-        GuildRoster()
-        VGT.LIBS:SendCommMessage(MODULE_NAME, "SYNCHRONIZATION_REQUEST:"..VGT.VERSION, "GUILD")
-        VGT.Log(VGT.LOG_LEVEL.TRACE, "initialized with version %s", VGT.VERSION)
-        entered = true
+  if (VGT.OPTIONS.enabled) then
+    if (loaded and event == "ADDON_LOADED") then
+      VGT.Douse_Initialize()
+      VGT.Map_Initialize()
+      VGT.LIBS:RegisterComm(MODULE_NAME, handleCoreMessageReceivedEvent)
+    end
+    if (loaded) then
+      if (event == "PLAYER_ENTERING_WORLD") then
+        handleInstanceChangeEvent(event)
+        if (not entered) then
+          GuildRoster()
+          VGT.LIBS:SendCommMessage(MODULE_NAME, "SYNCHRONIZATION_REQUEST:"..VGT.VERSION, "GUILD")
+          VGT.Log(VGT.LOG_LEVEL.TRACE, "initialized with version %s", VGT.VERSION)
+          entered = true
+        end
       end
-    end
-
-    if (not rostered and event == "GUILD_ROSTER_UPDATE") then
-      if (IsInGuild()) then
-        VGT.LIBS:ScheduleTimer(VGT.EP_Initialize, 1)
-        rostered = true
+      if (not rostered and event == "GUILD_ROSTER_UPDATE") then
+        if (IsInGuild()) then
+          VGT.EP_Initialize()
+          rostered = true
+        end
       end
-    end
-
-    if (event == "COMBAT_LOG_EVENT_UNFILTERED") then
-      VGT.HandleCombatLogEvent(event)
-    end
-
-    if (event == "PLAYER_LOGOUT") then
-      VGT.CONFIGURATION.logLevel = logLevel
+      if (event == "COMBAT_LOG_EVENT_UNFILTERED") then
+        VGT.HandleCombatLogEvent(event)
+      end
     end
   end
-
+  if (loaded and event == "PLAYER_LOGOUT") then
+    VGT_OPTIONS = VGT.OPTIONS
+  end
 end
 VGT.CORE_FRAME:RegisterEvent("ADDON_LOADED")
 VGT.CORE_FRAME:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -334,23 +318,23 @@ VGT.CORE_FRAME:SetScript("OnEvent", onEvent)
 -- ##### SLASH COMMANDS #######################################
 -- ############################################################
 
-SLASH_VGT1 = "/vgt"
-SlashCmdList["VGT"] = function(message)
-  local command, arg1 = strsplit(" ", message)
-  if (command == "" or command == "help") then
-    VGT.PrintHelp()
-    return
-  end
-
-  if (command == "about") then
-    VGT.PrintAbout()
-  elseif (command == "loglevel") then
-    VGT.SetLogLevel(arg1)
-  elseif (command == "dungeons") then
-    VGT.PrintDungeonList(tonumber(arg1), false)
-  elseif (command == "douse") then
-    VGT.CheckForDouse()
-  else
-    VGT.Log(VGT.LOG_LEVEL.ERROR, "invalid command - type `/vgt help` for a list of commands")
-  end
-end
+--SLASH_VGT1 = "/vgt"
+--SlashCmdList["VGT"] = function(message)
+--   local command, arg1 = strsplit(" ", message)
+--   if (command == "" or command == "help") then
+--     VGT.PrintHelp()
+--     return
+--   end
+--
+--   if (command == "about") then
+--     VGT.PrintAbout()
+--   elseif (command == "loglevel") then
+--     VGT.SetLogLevel(arg1)
+--   elseif (command == "dungeons") then
+--     VGT.PrintDungeonList(tonumber(arg1), false)
+--   elseif (command == "douse") then
+--     VGT.CheckForDouse()
+--   else
+--     VGT.Log(VGT.LOG_LEVEL.ERROR, "invalid command - type `/vgt help` for a list of commands")
+--   end
+--end

@@ -2,25 +2,6 @@
 -- ##### CONSTANTS ############################################
 -- ############################################################
 
-VGT.LOG_LEVEL = {}
-VGT.LOG_LEVEL.ALL = "ALL"
-VGT.LOG_LEVEL.TRACE = "TRACE"
-VGT.LOG_LEVEL.DEBUG = "DEBUG"
-VGT.LOG_LEVEL.INFO = "INFO"
-VGT.LOG_LEVEL.WARN = "WARN"
-VGT.LOG_LEVEL.ERROR = "ERROR"
-VGT.LOG_LEVEL.SYSTEM = "SYSTEM"
-VGT.LOG_LEVEL.OFF = "OFF"
-VGT.LOG_LEVELS = {
-  VGT.LOG_LEVEL.ALL,
-  VGT.LOG_LEVEL.TRACE,
-  VGT.LOG_LEVEL.DEBUG,
-  VGT.LOG_LEVEL.INFO,
-  VGT.LOG_LEVEL.WARN,
-  VGT.LOG_LEVEL.ERROR,
-  VGT.LOG_LEVEL.SYSTEM,
-  VGT.LOG_LEVEL.OFF
-}
 VGT.LOG = {
   LEVELS = {
     [VGT.LOG_LEVEL.ALL] = -1, [ - 1] = VGT.LOG_LEVEL.ALL,
@@ -73,38 +54,17 @@ end
 --  message: the unformatted message
 --  ...: values to format the message with
 VGT.Log = function(level, message, ...)
-  local logLevelNumber = logLevelToNumber(level)
+  if (VGT.OPTIONS.LOG.enabled) then
+    local logLevelNumber = logLevelToNumber(level)
 
-  -- Defaulting the log level to SYSTEM if none was provided
-  if (logLevelNumber == nil) then
-    logLevelNumber = VGT.LOG.LEVELS[VGT.LOG_LEVEL.SYSTEM]
-  end
-
-  -- Print the message if the log level is within bounds or if its a system log
-  if (logLevel <= logLevelNumber or logLevelNumber == VGT.LOG.LEVELS[VGT.LOG_LEVEL.SYSTEM]) then
-    print(format(VGT.LOG.COLORS[logLevelNumber].."[%s] "..message, VGT_ADDON_NAME, ...))
-  end
-end
-
--- Sets the global log level to the specified level
---  level: the log level to set to
-VGT.SetLogLevel = function(level)
-
-  -- Force upper any string passed as the log level
-  if (type(level) == "string") then
-    level = string.upper(level)
-  end
-
-  -- Set the log level if it's valid otherwise print an error message
-  if (VGT.TableContains(VGT.LOG.LEVELS, level) == true) then
-    logLevel = logLevelToNumber(level)
-    VGT.Log(VGT.LOG_LEVEL.SYSTEM, "log level set to %s", VGT.LOG.LEVELS[logLevel])
-  else
-
-    -- Replace nil log levels as a ' ' for better indication
-    if (level == nil) then
-      level = "' '"
+    -- Defaulting the log level to SYSTEM if none was provided
+    if (logLevelNumber == nil) then
+      logLevelNumber = VGT.LOG.LEVELS[VGT.LOG_LEVEL.SYSTEM]
     end
-    VGT.Log(VGT.LOG_LEVEL.ERROR, "%s is not a valid log level", level)
+
+    -- Print the message if the log level is within bounds or if its a system log
+    if (VGT.OPTIONS.LOG.logLevel <= logLevelNumber or logLevelNumber == VGT.LOG.LEVELS[VGT.LOG_LEVEL.SYSTEM]) then
+      print(format(VGT.LOG.COLORS[logLevelNumber].."[%s] "..message, VGT_ADDON_NAME, ...))
+    end
   end
 end
