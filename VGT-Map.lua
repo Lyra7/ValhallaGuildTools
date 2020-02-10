@@ -55,11 +55,10 @@ end
 
 local sendMyLocation = function()
   if (VGT.OPTIONS.MAP.sendMyLocation) then
-    local playerName = UnitName(PLAYER)
     local x, y, instanceMapId = worldPosition()
     local hp = UnitHealth(PLAYER) / UnitHealthMax(PLAYER)
-    if (playerName ~= nil and instanceMapId ~= nil and x ~= nil and y ~= nil and hp ~= nil) then
-      local data = playerName..DELIMITER..instanceMapId..DELIMITER..x..DELIMITER..y..DELIMITER..hp
+    if (instanceMapId ~= nil and x ~= nil and y ~= nil and hp ~= nil) then
+      local data = instanceMapId..DELIMITER..x..DELIMITER..y..DELIMITER..hp
       if (IsInGuild()) then
         VGT.LIBS:SendCommMessage(MODULE_NAME, data, COMM_CHANNEL, nil, COMM_PRIORITY)
       end
@@ -194,16 +193,18 @@ local handleMapMessageReceivedEvent = function(prefix, message, distribution, se
     return
   end
 
-  local playerName, instanceMapId, x, y, hp = strsplit(DELIMITER, message)
-  local pin, texture
-  if (players[playerName] == nil) then
-    pin, texture = findNextPin()
-  else
-    pin = players[playerName][PIN_INDEX]
-    texture = players[playerName][TEXTURE_INDEX]
+  local instanceMapId, x, y, hp = strsplit(DELIMITER, message)
+  if (tonumber(instanceMapId)) then
+    local pin, texture
+    if (players[sender] == nil) then
+      pin, texture = findNextPin()
+    else
+      pin = players[sender][PIN_INDEX]
+      texture = players[sender][TEXTURE_INDEX]
+    end
+    players[sender] = {true, pin, texture, instanceMapId, x, y, hp}
+    pins[pin] = {sender}
   end
-  players[playerName] = {true, pin, texture, instanceMapId, x, y, hp}
-  pins[pin] = {playerName}
 end
 
 local updateMapVisibility = function()
