@@ -49,7 +49,7 @@ local hasDouse = function()
       local _, _, _, _, _, _, itemLink = GetContainerItemInfo(bagIndex, slotIndex)
       if (itemLink ~= nil) then
         local itemId = select(3, strfind(itemLink, "item:(%d+)"))
-        if (itemId == "17333") then
+        if (itemId == "17333" or itemId == "22754") then
           return true
         end
       end
@@ -79,8 +79,12 @@ VGT.CheckForDouse = function ()
   end
 end
 
+local initialized = false
 VGT.Douse_Initialize = function()
   if (VGT.OPTIONS.DOUSE.enabled) then
-    VGT.LIBS:RegisterComm(MODULE_NAME, handleDouseMessageReceivedEvent)
+    if (initialized) then
+      VGT.LIBS:RegisterComm(MODULE_NAME, handleDouseMessageReceivedEvent)
+      initialized = true
+    end
   end
 end

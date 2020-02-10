@@ -292,13 +292,17 @@ VGT.HandleCombatLogEvent = function()
   end
 end
 
+local initialized = flase
 VGT.EP_Initialize = function()
   if (VGT.OPTIONS.EP.enabled) then
-    if (VGT_EPDB == nil) then
-      VGT_EPDB = {}
+    if (not initialized) then
+      if (VGT_EPDB == nil) then
+        VGT_EPDB = {}
+      end
+      CleanDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate) CleanDatabase:onUpdate(sinceLastUpdate) end)
+      VGT.LIBS:RegisterComm(MODULE_NAME, handleEPMessageReceivedEvent)
+      VGT.LIBS:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST:"..VGT.Count(VGT_EPDB), "GUILD", nil, "ALERT")
+      initialized = true
     end
-    CleanDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate) CleanDatabase:onUpdate(sinceLastUpdate) end)
-    VGT.LIBS:RegisterComm(MODULE_NAME, handleEPMessageReceivedEvent)
-    VGT.LIBS:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST:"..VGT.Count(VGT_EPDB), "GUILD", nil, "ALERT")
   end
 end

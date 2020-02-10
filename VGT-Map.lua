@@ -42,7 +42,7 @@ local NAME_INDEX = 1
 -- ##### LOCAL FUNCTIONS ######################################
 -- ############################################################
 
-local worldPosition = function()
+local worldPosition = function(decimals)
   local x, y, instanceMapId = VGT.LIBS.HBD:GetPlayerWorldPosition()
   local dungeon = (VGT.dungeons[instanceMapId] or VGT.raids[instanceMapId])
   if (dungeon ~= nil and dungeon[2] ~= nil and dungeon[3] ~= nil and dungeon[4] ~= nil) then
@@ -50,7 +50,7 @@ local worldPosition = function()
     y = dungeon[3]
     instanceMapId = dungeon[4]
   end
-  return x, y, instanceMapId
+  return VGT.Round(x, decimals or 0), VGT.Round(y, decimals or 0), instanceMapId
 end
 
 local sendMyLocation = function()
@@ -103,6 +103,7 @@ local removePin = function(name, pin)
   players[name][ACTIVE_INDEX] = false
 end
 
+--TODO not cleaning up toolttip info correctly
 local cleanPins = function()
   local playerName = UnitName(PLAYER)
   for k, v in pairs(players) do
@@ -228,12 +229,16 @@ end
 -- ##### GLOBAL FUNCTIONS #####################################
 -- ############################################################
 
+local initialized = false
 function VGT.Map_Initialize()
   if (VGT.OPTIONS.MAP.enabled) then
-    createBufferPins()
-    VGT.LIBS:RegisterComm(MODULE_NAME, handleMapMessageReceivedEvent)
-    VGT.LIBS:ScheduleRepeatingTimer(updateMapVisibility, 0.05)
-    VGT.LIBS:ScheduleRepeatingTimer(updatePins, VGT.OPTIONS.MAP.updateSpeed)
+    if (not initialized) then
+      createBufferPins()
+      VGT.LIBS:RegisterComm(MODULE_NAME, handleMapMessageReceivedEvent)
+      VGT.LIBS:ScheduleRepeatingTimer(updateMapVisibility, 0.05)
+      VGT.LIBS:ScheduleRepeatingTimer(updatePins, VGT.OPTIONS.MAP.updateSpeed)
+      initialized = true
+    end
   end
 end
 FRAME:RegisterEvent("GUILD_ROSTER_UPDATE")
