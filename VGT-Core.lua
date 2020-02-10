@@ -14,12 +14,15 @@ VGT.CORE_FRAME = CreateFrame("Frame")
 local handleInstanceChangeEvent = function()
   local _, instanceType, _, _, _, _, _, instanceID, _, _ = GetInstanceInfo()
   if (instanceType == "party" or instanceType == "raid") then
-    local dungeonName = VGT.dungeons[tonumber(instanceID)][1]
-    if (dungeonName ~= nil) then
-      VGT.Log(VGT.LOG_LEVEL.INFO, "Started logging for %s, goodluck!", dungeonName)
-      VGT.CORE_FRAME:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-    else
-      VGT.Log(VGT.LOG_LEVEL.DEBUG, "Entered %s(%s) but it is not a tracked dungeon.", dungeonName, instanceID)
+    local dungeonData = VGT.dungeons[tonumber(instanceID)]
+    if (dungeonData ~= nil) then
+      local dungeonName = dungeonData[1]
+      if (dungeonName ~= nil) then
+        VGT.Log(VGT.LOG_LEVEL.INFO, "Started logging for %s, goodluck!", dungeonName)
+        VGT.CORE_FRAME:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+      else
+        VGT.Log(VGT.LOG_LEVEL.DEBUG, "Entered %s(%s) but it is not a tracked dungeon.", dungeonName, instanceID)
+      end
     end
   else
     VGT.CORE_FRAME:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")

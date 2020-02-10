@@ -52,6 +52,7 @@ VGT.DefaultConfig = function(VGT_OPTIONS)
   VGT_OPTIONS.LOG.logLevel = default(VGT_OPTIONS.LOG.logLevel, VGT.LOG.LEVELS[VGT.LOG_LEVEL.INFO])
   VGT_OPTIONS.MAP.enabled = default(VGT_OPTIONS.MAP.enabled, true)
   VGT_OPTIONS.MAP.sendMyLocation = default(VGT_OPTIONS.MAP.sendMyLocation, true)
+  VGT_OPTIONS.MAP.showMe = default(VGT_OPTIONS.MAP.showMe, true)
   VGT_OPTIONS.MAP.updateSpeed = default(VGT_OPTIONS.MAP.updateSpeed, 1.5)
   return VGT_OPTIONS
 end
@@ -144,6 +145,13 @@ local options = {
           type = "toggle",
           set = function(info, val) VGT.OPTIONS.MAP.sendMyLocation = val end,
           get = function(info) return VGT.OPTIONS.MAP.sendMyLocation end
+        },
+        show_me = {
+          name = "Show My Pin",
+          desc = "shows your own pin on the world map",
+          type = "toggle",
+          set = function(info, val) VGT.OPTIONS.MAP.showMe = val end,
+          get = function(info) return VGT.OPTIONS.MAP.showMe end
         },
         update_speed = {
           name = "Update Speed",

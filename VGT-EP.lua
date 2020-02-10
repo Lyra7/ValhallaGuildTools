@@ -82,7 +82,7 @@ local withinDays = function(timestamp, days)
 end
 
 local validateTime = function(timestamp, sender)
-  if (withinDays(timestamp, 14)) then
+  if (withinDays(timestamp, 30)) then
     return true
   end
   VGT.Log(VGT.LOG_LEVEL.DEBUG, "invalid timestamp %s from %s", timeStampToDaysFromNow(timestamp), VGT.Safe(sender))

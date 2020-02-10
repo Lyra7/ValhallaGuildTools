@@ -1,15 +1,22 @@
+VGT.raids = {}
 VGT.dungeons = {}
 VGT.bosses = {}
 
+VGT.raids["Molten Core"] = 409
+VGT.raids[409] = {"Molten Core", - 1039.7, - 7508.3, 0}
+
+VGT.raids["Onyxia's Lair"] = 249
+VGT.raids[249] = {"Onyxia's Lair", - 3754.4, - 4750.4, 1}
+
 VGT.dungeons["Ragefire Chasm"] = 389
-VGT.dungeons[389] = {"Ragefire Chasm"}
+VGT.dungeons[389] = {"Ragefire Chasm", - 4419.2, 1815, 1}
 VGT.bosses[11520] = "Taragaman the Hungerer"
 VGT.bosses[11517] = "Oggleflint"
 VGT.bosses[11518] = "Jergosh the Invoker"
 VGT.bosses[11519] = "Bazzalan"
 
 VGT.dungeons["Wailing Caverns"] = 43
-VGT.dungeons[43] = {"Wailing Caverns"}
+VGT.dungeons[43] = {"Wailing Caverns", - 2217.8, - 738.5, 1}
 VGT.bosses[3653] = "Kresh"
 VGT.bosses[3671] = "Lady Anacondra"
 VGT.bosses[3669] = "Lord Cobrahn"
@@ -21,7 +28,7 @@ VGT.bosses[5775] = "Verdan the Everliving"
 VGT.bosses[3654] = "Mutanus the Devourer"
 
 VGT.dungeons["The Deadmines"] = 36
-VGT.dungeons[36] = {"The Deadmines"}
+VGT.dungeons[36] = {"The Deadmines", 1675.9, - 11208.7, 0}
 VGT.bosses[644] = "Rhahk'Zor"
 VGT.bosses[3586] = "Miner Johnson"
 VGT.bosses[642] = "Sneed's Shredder"
@@ -32,7 +39,7 @@ VGT.bosses[639] = "Edwin VanCleef"
 VGT.bosses[645] = "Cookie"
 
 VGT.dungeons["Shadowfang Keep"] = 33
-VGT.dungeons[33] = {"Shadowfang Keep"}
+VGT.dungeons[33] = {"Shadowfang Keep", 1567.5, - 233, 0}
 VGT.bosses[3914] = "Rethilgore"
 VGT.bosses[3864] = "Fel Steed"
 VGT.bosses[3865] = "Shadow Charger"
@@ -55,7 +62,7 @@ VGT.bosses[1716] = "Bazil Thredd"
 VGT.bosses[1720] = "Bruegal Ironknuckle"
 
 VGT.dungeons["Blackfathom Deeps"] = 48
-VGT.dungeons[48] = {"Blackfathom Deeps"}
+VGT.dungeons[48] = {"Blackfathom Deeps", 743.4, 4246.7, 1}
 VGT.bosses[4887] = "Ghamoo-ra"
 VGT.bosses[4831] = "Lady Sarevess"
 VGT.bosses[6243] = "Gelihast"
@@ -66,7 +73,7 @@ VGT.bosses[4830] = "Old Serra'kis"
 VGT.bosses[4829] = "Aku'mai"
 
 VGT.dungeons["Gnomeregan"] = 90
-VGT.dungeons[90] = {"Gnomeregan"}
+VGT.dungeons[90] = {"Gnomeregan", 927.7, - 5162.6, 0}
 VGT.bosses[7361] = "Grubbis"
 VGT.bosses[7079] = "Viscous Fallout"
 VGT.bosses[6235] = "Electrocutioner 6000"
@@ -75,7 +82,7 @@ VGT.bosses[6228] = "Dark Iron Ambassador"
 VGT.bosses[7800] = "Mekgineer Thermaplugg"
 
 VGT.dungeons["Razorfen Kraul"] = 47
-VGT.dungeons[47] = {"Razorfen Kraul"}
+VGT.dungeons[47] = {"Razorfen Kraul", - 1664.3, - 4463.3, 1}
 VGT.bosses[6168] = "Roogug"
 VGT.bosses[4424] = "Aggem Thorncurse"
 VGT.bosses[4428] = "Death Speaker Jargba"
@@ -84,7 +91,7 @@ VGT.bosses[4422] = "Agathelos the Raging"
 VGT.bosses[4421] = "Charlga Razorflank"
 
 VGT.dungeons["Scarlet Monastery"] = 189
-VGT.dungeons[189] = {"Scarlet Monastery"}
+VGT.dungeons[189] = {"Scarlet Monastery", - 823.6, 2915.1, 0}
 VGT.bosses[3983] = "Interrogator Vishas"
 VGT.bosses[4543] = "Bloodmage Thalnos"
 VGT.bosses[6490] = "Azshir the Sleepless"
@@ -98,7 +105,7 @@ VGT.bosses[3977] = "High Inquisitor Whitemane"
 VGT.bosses[4542] = "High Inquisitor Fairbanks"
 
 VGT.dungeons["Razorfen Downs"] = 129
-VGT.dungeons[129] = {"Razorfen Downs"}
+VGT.dungeons[129] = {"Razorfen Downs", - 2524.2, - 4659.6, 1}
 VGT.bosses[7355] = "Tuten'kash"
 VGT.bosses[7356] = "Plaguemaw the Rotting"
 VGT.bosses[7357] = "Mordresh Fire Eye"
@@ -107,7 +114,7 @@ VGT.bosses[8567] = "Glutton"
 VGT.bosses[7358] = "Amnennar the Coldbringer"
 
 VGT.dungeons["Uldaman"] = 70
-VGT.dungeons[70] = {"Uldaman"}
+VGT.dungeons[70] = {"Uldaman", - 2954.6, - 6066.3, 0}
 VGT.bosses[6910] = "Revelosh"
 VGT.bosses[6906] = "Baelog"
 VGT.bosses[7228] = "Ironaya"
@@ -118,7 +125,7 @@ VGT.bosses[4854] = "Grimlok"
 VGT.bosses[2748] = "Archaedas"
 
 VGT.dungeons["Zul'Farrak"] = 209
-VGT.dungeons[209] = {"Zul'Farrak"}
+VGT.dungeons[209] = {"Zul'Farrak", - 2890.6, - 6795.6, 1}
 VGT.bosses[8127] = "Antu'sul"
 VGT.bosses[7272] = "Theka the Martyr"
 VGT.bosses[7271] = "Witch Doctor Zum'rah"
@@ -133,7 +140,7 @@ VGT.bosses[10082] = "Zerills"
 VGT.bosses[10080] = "Sandarr Dunereaver"
 
 VGT.dungeons["Maraudon"] = 349
-VGT.dungeons[349] = {"Maraudon"}
+VGT.dungeons[349] = {"Maraudon", 2614.2, - 1468.2, 1}
 VGT.bosses[13282] = "Noxxion"
 VGT.bosses[12258] = "Razorlash"
 VGT.bosses[12236] = "Lord Vyletongue"
@@ -144,7 +151,7 @@ VGT.bosses[13596] = "Rotgrip"
 VGT.bosses[12201] = "Princess Theradas"
 
 VGT.dungeons["The Temple of Atal'Hakkar"] = 109
-VGT.dungeons[109] = {"The Temple of Atal'Hakkar"}
+VGT.dungeons[109] = {"The Temple of Atal'Hakkar", - 3995.4, - 10176.6, 0}
 VGT.bosses[5713] = "Gasher"
 VGT.bosses[5715] = "Hukku"
 VGT.bosses[5714] = "Loro"
@@ -162,7 +169,7 @@ VGT.bosses[8443] = "Avatar of Hakkar"
 VGT.bosses[5709] = "Shade of Eranikus"
 
 VGT.dungeons["Blackrock Depths"] = 230
-VGT.dungeons[230] = {"Blackrock Depths"}
+VGT.dungeons[230] = {"Blackrock Depths", - 922.2, - 7178.3, 0}
 VGT.bosses[9025] = "Lord Roccor"
 VGT.bosses[9016] = "Bael'Gar"
 VGT.bosses[9319] = "Houndmaster Grebmar"
@@ -198,7 +205,7 @@ VGT.bosses[8929] = "Princess Moira Bronzebear"
 VGT.bosses[9019] = "Emperor Dagran Thaurissan"
 
 VGT.dungeons["Blackrock Spire"] = 229
-VGT.dungeons[229] = {"Blackrock Spire"}
+VGT.dungeons[229] = {"Blackrock Spire", - 1228.4, - 7524.7, 0}
 VGT.bosses[9196] = "Highlord Omokk"
 VGT.bosses[9236] = "Shadow Hunter Vosh'gajin"
 VGT.bosses[9237] = "War Master Voone"
@@ -217,7 +224,7 @@ VGT.bosses[10430] = "The Beast"
 VGT.bosses[10363] = "General Drakkisath"
 
 VGT.dungeons["Scholomance"] = 289
-VGT.dungeons[289] = {"Scholomance"}
+VGT.dungeons[289] = {"Scholomance", - 2553.1, 1273.9, 0}
 VGT.bosses[10506] = "Kirtonos the Herald"
 VGT.bosses[10503] = "Jandice Barov"
 VGT.bosses[11622] = "Rattlegore"
@@ -233,7 +240,7 @@ VGT.bosses[10502] = "Lady Illucia Barov"
 VGT.bosses[1853] = "Darkmaster Gandling"
 
 VGT.dungeons["Stratholme"] = 329
-VGT.dungeons[329] = {"Stratholme"}
+VGT.dungeons[329] = {"Stratholme", - 4048.3, 3233.1, 0}
 VGT.bosses[11058] = "Fras Siabi"
 VGT.bosses[10393] = "Skul"
 VGT.bosses[10558] = "Hearthsinger Forresten"
@@ -255,7 +262,7 @@ VGT.bosses[10439] = "Ramstein the Gorger"
 VGT.bosses[10440] = "Baron Rivendare"
 
 VGT.dungeons["Dire Maul"] = 429
-VGT.dungeons[429] = {"Dire Maul"}
+VGT.dungeons[429] = {"Dire Maul", 1078.4, - 3520.2, 1}
 VGT.bosses[14354] = "Pusillin"
 VGT.bosses[14327] = "Lehtendris"
 VGT.bosses[13280] = "Hydrospawn"
@@ -275,3 +282,6 @@ VGT.bosses[11488] = "Illyanna Ravenoak"
 VGT.bosses[11496] = "Immol'thar"
 VGT.bosses[11486] = "Prince Tortheldrin"
 VGT.bosses[14506] = "Lord Hel'nurath"
+
+--special thanks to:
+-- Grogazm, Puggly, Dirka, Celestine, Diebin, Lirah

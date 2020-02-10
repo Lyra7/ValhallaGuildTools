@@ -1,12 +1,14 @@
 local MODULE_NAME = "VGT-Map"
+local FRAME = CreateFrame("Frame")
 
 local BUFFER_STEP = 10
+local guildMembersOnline = {}
 local bufferPins = {}
 local players = {}
 local pins = {}
 local isMapVisible = false
 
-local FRAME = "Frame"
+local FRAME_TYPE = "Frame"
 local PLAYER = "player"
 local COMM_CHANNEL = "GUILD"
 local COMM_PRIORITY = "ALERT"
@@ -42,7 +44,7 @@ local NAME_INDEX = 1
 
 local worldPosition = function()
   local x, y, instanceMapId = VGT.LIBS.HBD:GetPlayerWorldPosition()
-  local dungeon = VGT.dungeons[instanceMapId]
+  local dungeon = (VGT.dungeons[instanceMapId] or VGT.raids[instanceMapId])
   if (dungeon ~= nil and dungeon[2] ~= nil and dungeon[3] ~= nil and dungeon[4] ~= nil) then
     x = dungeon[2]
     y = dungeon[3]
@@ -69,6 +71,7 @@ local findClosePlayers = function(x, y, name)
   local closePlayers = NEW_LINE
   for k, v in pairs(players) do
     if (name == nil or name ~= k) then
+      -- TODO distance needs to increase as map zooms out
       if (abs(x - v[X_INDEX]) + abs(y - v[Y_INDEX]) < 50) then
         closePlayers = closePlayers..k..HP_SEPERATOR..VGT.Round(v[HP_INDEX] * 100, 0)..PERCENT..NEW_LINE
       end
@@ -95,21 +98,19 @@ local onLeavePin = function(self)
   GameTooltip:Hide()
 end
 
-local cleanPins = function()
-  --TODO only need to update this table if guild roster event changes
-  local guildMembersOnline = {}
-  local numTotalMembers = GetNumGuildMembers()
-  for i = 1, numTotalMembers do
-    local fullname, _, _, _, _, _, _, _, online = GetGuildRosterInfo(i)
-    local name = strsplit(NAME_SEPERATOR, fullname)
-    guildMembersOnline[name] = online
-  end
+local removePin = function(name, pin)
+  VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, pin)
+  players[name][ACTIVE_INDEX] = false
+end
 
+local cleanPins = function()
+  local playerName = UnitName(PLAYER)
   for k, v in pairs(players) do
+    if (k == playerName and VGT.OPTIONS.MAP.showMe == false) then
+      removePin(k, players[k][PIN_INDEX])
+    end
     if (not guildMembersOnline[k]) then
-      local pin = players[k][PIN_INDEX]
-      VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, pin)
-      players[k][NAME_INDEX] = false
+      removePin(k, players[k][PIN_INDEX])
     end
   end
 end
@@ -147,7 +148,7 @@ end
 
 local createBufferPins = function()
   for i = 1, BUFFER_STEP do
-    local pin = CreateFrame(FRAME, nil, WorldFrame)
+    local pin = CreateFrame(FRAME_TYPE, nil, WorldFrame)
     pin:SetWidth(PIN_SIZE)
     pin:SetHeight(PIN_SIZE)
     local texture = pin:CreateTexture(nil, BACKGROUND)
@@ -188,7 +189,7 @@ local handleMapMessageReceivedEvent = function(prefix, message, distribution, se
   end
 
   local playerName = UnitName(PLAYER)
-  if (sender == playerName) then
+  if (not VGT.OPTIONS.MAP.showMe and sender == playerName) then
     return
   end
 
@@ -212,6 +213,17 @@ local updateMapVisibility = function()
   end
 end
 
+local function onEvent(_, event)
+  if (event == "GUILD_ROSTER_UPDATE") then
+    local numTotalMembers = GetNumGuildMembers()
+    for i = 1, numTotalMembers do
+      local fullname, _, _, _, _, _, _, _, online = GetGuildRosterInfo(i)
+      local name = strsplit(NAME_SEPERATOR, fullname)
+      guildMembersOnline[name] = online
+    end
+  end
+end
+
 -- ############################################################
 -- ##### GLOBAL FUNCTIONS #####################################
 -- ############################################################
@@ -224,3 +236,5 @@ function VGT.Map_Initialize()
     VGT.LIBS:ScheduleRepeatingTimer(updatePins, VGT.OPTIONS.MAP.updateSpeed)
   end
 end
+FRAME:RegisterEvent("GUILD_ROSTER_UPDATE")
+FRAME:SetScript("OnEvent", onEvent)

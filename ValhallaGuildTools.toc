@@ -4,11 +4,10 @@
 ## Notes: Valhalla Guild Tools
 ## SavedVariables: VGT_OPTIONS
 ## SavedVariablesPerCharacter: VGT_EPDB
-## OptionalDeps: Ace3
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: Bonkeybee
-## Version: 11302.32
+## Version: 11303.33
 
 
 Libs\LibStub\LibStub.lua
