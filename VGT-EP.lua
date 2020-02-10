@@ -90,7 +90,7 @@ local validateTime = function(timestamp, sender)
 end
 
 local validateDungeon = function(dungeon, sender)
-  if (dungeon == "TestDungeon" or VGT.TableContains(VGT.dungeons, dungeon)) then
+  if (dungeon == "TestDungeon" or VGT.dungeons[dungeon] ~= nil) then
     return true
   end
   VGT.Log(VGT.LOG_LEVEL.DEBUG, "invalid dungeon %s from %s", dungeon, VGT.Safe(sender))
