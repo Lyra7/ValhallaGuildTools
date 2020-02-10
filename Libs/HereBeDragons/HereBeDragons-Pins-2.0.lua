@@ -5,6 +5,9 @@ assert(LibStub, MAJOR .. " requires LibStub")
 
 local pins, _oldversion = LibStub:NewLibrary(MAJOR, MINOR)
 if not pins then return end
+function HBD_GetPins()
+  return pins
+end
 
 local HBD = LibStub("HereBeDragons-2.0")
 
