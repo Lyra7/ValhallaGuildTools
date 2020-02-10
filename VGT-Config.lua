@@ -39,23 +39,20 @@ end
 -- ############################################################
 
 VGT.DefaultConfig = function(VGT_OPTIONS)
-  if (VGT_OPTIONS == nil) then
-    VGT_OPTIONS = {}
-  end
-  default(VGT_OPTIONS, {})
-  default(VGT_OPTIONS.enabled, true)
-  default(VGT_OPTIONS.DOUSE, {})
-  default(VGT_OPTIONS.DOUSE.enabled, true)
-  default(VGT_OPTIONS.EP, {})
-  default(VGT_OPTIONS.LOG, {})
-  default(VGT_OPTIONS.MAP, {})
-  default(VGT_OPTIONS.DOUSE.enabled, true)
-  default(VGT_OPTIONS.EP.enabled, true)
-  default(VGT_OPTIONS.LOG.enabled, true)
-  default(VGT_OPTIONS.LOG.logLevel, VGT.LOG.LEVELS[VGT.LOG_LEVEL.INFO])
-  default(VGT_OPTIONS.MAP.enabled, true)
-  default(VGT_OPTIONS.MAP.sendMyLocation, true)
-  default(VGT_OPTIONS.MAP.updateSpeed, 1.5)
+  VGT_OPTIONS = default(VGT_OPTIONS, {})
+  VGT_OPTIONS.enabled = default(VGT_OPTIONS.enabled, true)
+  VGT_OPTIONS.DOUSE = default(VGT_OPTIONS.DOUSE, {})
+  VGT_OPTIONS.DOUSE.enabled = default(VGT_OPTIONS.DOUSE.enabled, true)
+  VGT_OPTIONS.EP = default(VGT_OPTIONS.EP, {})
+  VGT_OPTIONS.LOG = default(VGT_OPTIONS.LOG, {})
+  VGT_OPTIONS.MAP = default(VGT_OPTIONS.MAP, {})
+  VGT_OPTIONS.DOUSE.enabled = default(VGT_OPTIONS.DOUSE.enabled, true)
+  VGT_OPTIONS.EP.enabled = default(VGT_OPTIONS.EP.enabled, true)
+  VGT_OPTIONS.LOG.enabled = default(VGT_OPTIONS.LOG.enabled, true)
+  VGT_OPTIONS.LOG.logLevel = default(VGT_OPTIONS.LOG.logLevel, VGT.LOG.LEVELS[VGT.LOG_LEVEL.INFO])
+  VGT_OPTIONS.MAP.enabled = default(VGT_OPTIONS.MAP.enabled, true)
+  VGT_OPTIONS.MAP.sendMyLocation = default(VGT_OPTIONS.MAP.sendMyLocation, true)
+  VGT_OPTIONS.MAP.updateSpeed = default(VGT_OPTIONS.MAP.updateSpeed, 1.5)
   return VGT_OPTIONS
 end
 
