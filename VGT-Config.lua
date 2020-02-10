@@ -39,6 +39,9 @@ end
 -- ############################################################
 
 VGT.DefaultConfig = function(VGT_OPTIONS)
+  if (VGT_OPTIONS == nil) then
+    VGT_OPTIONS = {}
+  end
   default(VGT_OPTIONS, {})
   default(VGT_OPTIONS.enabled, true)
   default(VGT_OPTIONS.DOUSE, {})

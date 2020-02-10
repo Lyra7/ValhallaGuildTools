@@ -284,7 +284,7 @@ VGT.HandleCombatLogEvent = function()
   local _, cTypeID, cInstanceUID, cInstanceID, cUnitUID, cUnitID, hex = strsplit("-", cUID)
   if (cEvent == "UNIT_DIED") then
     local creatureUID = VGT.StringAppend(cTypeID, cInstanceUID, cInstanceID, cUnitUID, cUnitID, hex)
-    local dungeonName = VGT.dungeons[tonumber(cInstanceID)]
+    local dungeonName = VGT.dungeons[tonumber(cInstanceID)][1]
     local bossName = VGT.bosses[tonumber(cUnitID)]
     if (creatureUID ~= nil and dungeonName ~= nil and bossName ~= nil) then
       handleUnitDeath(creatureUID, dungeonName, bossName)
@@ -299,6 +299,6 @@ VGT.EP_Initialize = function()
     end
     CleanDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate) CleanDatabase:onUpdate(sinceLastUpdate) end)
     VGT.LIBS:RegisterComm(MODULE_NAME, handleEPMessageReceivedEvent)
-    VGT.LIBS:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST:"..VGT.Count(VGT_EPDB), "GUILD")
+    VGT.LIBS:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST:"..VGT.Count(VGT_EPDB), "GUILD", nil, "ALERT")
   end
 end

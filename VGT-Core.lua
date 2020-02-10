@@ -14,7 +14,7 @@ VGT.CORE_FRAME = CreateFrame("Frame")
 local handleInstanceChangeEvent = function()
   local _, instanceType, _, _, _, _, _, instanceID, _, _ = GetInstanceInfo()
   if (instanceType == "party" or instanceType == "raid") then
-    local dungeonName = VGT.dungeons[tonumber(instanceID)]
+    local dungeonName = VGT.dungeons[tonumber(instanceID)][1]
     if (dungeonName ~= nil) then
       VGT.Log(VGT.LOG_LEVEL.INFO, "Started logging for %s, goodluck!", dungeonName)
       VGT.CORE_FRAME:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")

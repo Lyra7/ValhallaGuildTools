@@ -41,7 +41,7 @@ VGT.bosses[4274] = "Fenrus the Devourer"
 VGT.bosses[3927] = "Wolf Master Nandos"
 VGT.bosses[4275] = "Archmage Arugal"
 
-VGT.dungeons[34] = "The Stockade"
+VGT.dungeons[34] = {"The Stockade", 845.5, - 8766.1, 0}
 VGT.bosses[1696] = "Targorr the Dread"
 VGT.bosses[1666] = "Kam Deepfury"
 VGT.bosses[1717] = "Hamhock"

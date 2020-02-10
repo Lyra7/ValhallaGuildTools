@@ -8,8 +8,8 @@ local isMapVisible = false
 
 local FRAME = "Frame"
 local PLAYER = "player"
-local GUILD = "GUILD"
-local BULK = "BULK"
+local COMM_CHANNEL = "GUILD"
+local COMM_PRIORITY = "ALERT"
 local PERCENT = "%"
 local NEW_LINE = "\n"
 local DELIMITER = ":"
@@ -40,16 +40,26 @@ local NAME_INDEX = 1
 -- ##### LOCAL FUNCTIONS ######################################
 -- ############################################################
 
+local worldPosition = function()
+  local x, y, instanceMapId = VGT.LIBS.HBD:GetPlayerWorldPosition()
+  local dungeon = VGT.dungeons[instanceMapId]
+  if (dungeon ~= nil and dungeon[2] ~= nil and dungeon[3] ~= nil and dungeon[4] ~= nil) then
+    x = dungeon[2]
+    y = dungeon[3]
+    instanceMapId = dungeon[4]
+  end
+  return x, y, instanceMapId
+end
+
 local sendMyLocation = function()
   if (VGT.OPTIONS.MAP.sendMyLocation) then
     local playerName = UnitName(PLAYER)
-    local _, _, _, _, _, _, _, instanceMapId = GetInstanceInfo()
-    local x, y = VGT.LIBS.HBD:GetPlayerWorldPosition()
+    local x, y, instanceMapId = worldPosition()
     local hp = UnitHealth(PLAYER) / UnitHealthMax(PLAYER)
     if (playerName ~= nil and instanceMapId ~= nil and x ~= nil and y ~= nil and hp ~= nil) then
       local data = playerName..DELIMITER..instanceMapId..DELIMITER..x..DELIMITER..y..DELIMITER..hp
       if (IsInGuild()) then
-        VGT.LIBS:SendCommMessage(MODULE_NAME, data, GUILD, nil, BULK)
+        VGT.LIBS:SendCommMessage(MODULE_NAME, data, COMM_CHANNEL, nil, COMM_PRIORITY)
       end
     end
   end
@@ -86,6 +96,7 @@ local onLeavePin = function(self)
 end
 
 local cleanPins = function()
+  --TODO only need to update this table if guild roster event changes
   local guildMembersOnline = {}
   local numTotalMembers = GetNumGuildMembers()
   for i = 1, numTotalMembers do
@@ -209,7 +220,7 @@ function VGT.Map_Initialize()
   if (VGT.OPTIONS.MAP.enabled) then
     createBufferPins()
     VGT.LIBS:RegisterComm(MODULE_NAME, handleMapMessageReceivedEvent)
-    VGT.LIBS:ScheduleRepeatingTimer(updateMapVisibility, 0.1)
+    VGT.LIBS:ScheduleRepeatingTimer(updateMapVisibility, 0.05)
     VGT.LIBS:ScheduleRepeatingTimer(updatePins, VGT.OPTIONS.MAP.updateSpeed)
   end
 end
