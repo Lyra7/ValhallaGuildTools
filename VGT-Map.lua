@@ -6,7 +6,6 @@ local guildMembers = {}
 local bufferPins = {}
 local players = {}
 local pins = {}
-local isMapVisible = false
 
 local FRAME_TYPE = "Frame"
 local PLAYER = "player"
@@ -160,8 +159,7 @@ local validate = function(data)
 end
 
 local updatePins = function()
-  sendMyLocation()
-  if (isMapVisible) then
+  if (WorldMapFrame:IsVisible()) then
     cleanPins()
     for k, v in pairs(players) do
       if (validate(v)) then
@@ -244,18 +242,6 @@ local handleMapMessageReceivedEvent = function(prefix, message, distribution, se
   end
 end
 
-local updateMapVisibility = function()
-  if (WorldMapFrame:IsVisible()) then
-    if (not isMapVisible) then
-      isMapVisible = true
-      updatePins()
-    end
-    isMapVisible = true
-  else
-    isMapVisible = false
-  end
-end
-
 local function onEvent(_, event)
   if (event == "GUILD_ROSTER_UPDATE") then
     local numTotalMembers = GetNumGuildMembers()
@@ -280,11 +266,42 @@ function VGT.Map_Initialize()
     if (not initialized) then
       createBufferPins()
       VGT.LIBS:RegisterComm(MODULE_NAME, handleMapMessageReceivedEvent)
-      VGT.LIBS:ScheduleRepeatingTimer(updateMapVisibility, 0.05)
-      VGT.LIBS:ScheduleRepeatingTimer(updatePins, VGT.OPTIONS.MAP.updateSpeed)
+      VGT.LIBS:ScheduleRepeatingTimer(VGT.Map_MessageLoop, 0.05)
+	  sendMyLocation() -- Send the location immediately on initialization
       initialized = true
     end
   end
 end
 FRAME:RegisterEvent("GUILD_ROSTER_UPDATE")
 FRAME:SetScript("OnEvent", onEvent)
+
+local lastUpdate = GetTime()
+
+function VGT.Map_MessageLoop(timer)
+	updatePins() -- Always update the pins with the latest data. Adding a delay to this doubles the percieved delay of the pins' position.
+
+	local now = GetTime()
+	local delay = 3
+	-- TODO: re-implement or remove user setting. 
+
+	if UnitAffectingCombat(PLAYER) then
+		delay = 5 -- throttle it down to 5 seconds in combat.
+	end
+
+	if UnitOnTaxi(PLAYER) then
+		delay = 10 -- On bird
+	end
+
+	if UnitIsAFK(PLAYER) then
+		delay = 120 -- afk players don't move. Throttle down to 2 minutes while they are afk.
+		-- idea: when player is afk (or otherwise unmoving), forego sending any location updates unless a new guild member signs on or reloads. Possible?
+	end
+
+	-- TODO: Possibly delay further when character moves under a certain distance? Would doing this even be worth it?
+
+	if now - lastUpdate >= delay then
+		--VGT.Log(VGT.LOG_LEVEL.SYSTEM, "now:"..now.." delay:"..delay)
+		lastUpdate = now
+		sendMyLocation()
+	end
+end
