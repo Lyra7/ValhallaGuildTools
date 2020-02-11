@@ -85,7 +85,7 @@ local validateTime = function(timestamp, sender)
   if (withinDays(timestamp, 30)) then
     return true
   end
-  VGT.Log(VGT.LOG_LEVEL.DEBUG, "invalid timestamp %s from %s", timeStampToDaysFromNow(timestamp), VGT.Safe(sender))
+  VGT.Log(VGT.LOG_LEVEL.TRACE, "invalid timestamp %s from %s", timeStampToDaysFromNow(timestamp), VGT.Safe(sender))
   return false
 end
 
@@ -235,9 +235,11 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
     if (event == "SYNCHRONIZATION_REQUEST") then
       if (count ~= VGT.Count(VGT_EPDB)) then
         for k, v in pairs(VGT_EPDB) do
-          local message = format("%s;%s", k, v)
-          VGT.Log(VGT.LOG_LEVEL.TRACE, "sending %s to %s for %s:SYNCHRONIZATION_REQUEST.", message, sender, MODULE_NAME)
-          VGT.LIBS:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
+          if (validateRecord(k, v, playerName)) then
+            local message = format("%s;%s", k, v)
+            VGT.Log(VGT.LOG_LEVEL.TRACE, "sending %s to %s for %s:SYNCHRONIZATION_REQUEST.", message, sender, MODULE_NAME)
+            VGT.LIBS:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
+          end
         end
       end
     else

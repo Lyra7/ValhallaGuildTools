@@ -2,7 +2,7 @@ local MODULE_NAME = "VGT-Map"
 local FRAME = CreateFrame("Frame")
 
 local BUFFER_STEP = 10
-local guildMembersOnline = {}
+local guildMembers = {}
 local bufferPins = {}
 local players = {}
 local pins = {}
@@ -42,13 +42,37 @@ local NAME_INDEX = 1
 -- ##### LOCAL FUNCTIONS ######################################
 -- ############################################################
 
+local colorGradient = function(perc, ...)
+  if perc >= 1 then
+    local r, g, b = select(select('#', ...) - 2, ...)
+    return r, g, b
+  elseif perc <= 0 then
+    local r, g, b = ...
+    return r, g, b
+  end
+
+  local num = select('#', ...) / 3
+
+  local segment, relperc = math.modf(perc * (num - 1))
+  local r1, g1, b1, r2, g2, b2 = select((segment * 3) + 1, ...)
+
+  return r1 + (r2 - r1) * relperc, g1 + (g2 - g1) * relperc, b1 + (b2 - b1) * relperc
+end
+
+local function RGBPercToHex(r, g, b)
+  r = r <= 1 and r >= 0 and r or 0
+  g = g <= 1 and g >= 0 and g or 0
+  b = b <= 1 and b >= 0 and b or 0
+  return string.format("%02x%02x%02x", r * 255, g * 255, b * 255)
+end
+
 local worldPosition = function(decimals)
   local x, y, instanceMapId = VGT.LIBS.HBD:GetPlayerWorldPosition()
   local dungeon = (VGT.dungeons[instanceMapId] or VGT.raids[instanceMapId])
   if (dungeon ~= nil and dungeon[2] ~= nil and dungeon[3] ~= nil and dungeon[4] ~= nil) then
     x = dungeon[2]
     y = dungeon[3]
-    instanceMapId = dungeon[4]
+    --instanceMapId = dungeon[4]
   end
   return VGT.Round(x, decimals or 0), VGT.Round(y, decimals or 0), instanceMapId
 end
@@ -66,13 +90,19 @@ local sendMyLocation = function()
   end
 end
 
-local findClosePlayers = function(x, y, name)
+local colorString = function(colorHex, str)
+  return "|c"..colorHex..str.."|r"
+end
+
+local findClosePlayers = function(x, y, name, active)
   local closePlayers = NEW_LINE
   for k, v in pairs(players) do
-    if (name == nil or name ~= k) then
+    if (active and (name == nil or name ~= k)) then
       -- TODO distance needs to increase as map zooms out
       if (abs(x - v[X_INDEX]) + abs(y - v[Y_INDEX]) < 50) then
-        closePlayers = closePlayers..k..HP_SEPERATOR..VGT.Round(v[HP_INDEX] * 100, 0)..PERCENT..NEW_LINE
+        closePlayers = closePlayers
+        ..colorString(select(4, GetClassColor(guildMembers[k][6])), k)..HP_SEPERATOR
+        ..colorString("ff"..RGBPercToHex(colorGradient(tonumber(v[HP_INDEX]), 1, 0, 0, 1, 1, 0, 0, 1, 0)), VGT.Round(v[HP_INDEX] * 100, 0)..PERCENT)..NEW_LINE
       end
     end
   end
@@ -89,7 +119,10 @@ local onEnterPin = function(self)
   end
 
   local name = pins[self][NAME_INDEX]
-  GameTooltip:SetText(name..HP_SEPERATOR..VGT.Round(players[name][HP_INDEX] * 100, 0)..PERCENT..findClosePlayers(players[name][X_INDEX], players[name][Y_INDEX], name))
+  GameTooltip:SetText(guildMembers[name][3]..NEW_LINE
+    ..colorString(select(4, GetClassColor(guildMembers[name][6])), name)..HP_SEPERATOR
+    ..colorString("ff"..RGBPercToHex(colorGradient(tonumber(players[name][HP_INDEX]), 1, 0, 0, 1, 1, 0, 0, 1, 0)), VGT.Round(players[name][HP_INDEX] * 100, 0)..PERCENT)
+  ..findClosePlayers(players[name][X_INDEX], players[name][Y_INDEX], name, players[name][ACTIVE_INDEX]))
   GameTooltip:Show()
 end
 
@@ -102,14 +135,13 @@ local removePin = function(name, pin)
   players[name][ACTIVE_INDEX] = false
 end
 
---TODO not cleaning up toolttip info correctly
 local cleanPins = function()
   local playerName = UnitName(PLAYER)
   for k, v in pairs(players) do
     if (k == playerName and VGT.OPTIONS.MAP.showMe == false) then
       removePin(k, players[k][PIN_INDEX])
     end
-    if (not guildMembersOnline[k]) then
+    if (not guildMembers[k][4]) then
       removePin(k, players[k][PIN_INDEX])
     end
   end
@@ -139,7 +171,12 @@ local updatePins = function()
         else
           texture:SetTexCoord(0.51, 0.76, 0.00, 0.26) -- Green
         end
-        VGT.LIBS.HBDP:AddWorldMapIconWorld(MODULE_NAME, v[PIN_INDEX], tonumber(v[MAP_ID_INDEX]), tonumber(v[X_INDEX]), tonumber(v[Y_INDEX]), 3, "PIN_FRAME_LEVEL_GROUP_MEMBER")
+        local instanceMapId = tonumber(v[MAP_ID_INDEX])
+        local instance = VGT.dungeons[instanceMapId] or VGT.raids[instanceMapId]
+        if (instance ~= nil) then
+          instanceMapId = instance[4]
+        end
+        VGT.LIBS.HBDP:AddWorldMapIconWorld(MODULE_NAME, v[PIN_INDEX], instanceMapId, tonumber(v[X_INDEX]), tonumber(v[Y_INDEX]), 3, "PIN_FRAME_LEVEL_GROUP_MEMBER")
       end
     end
     HBD_GetPins().worldmapProvider:RefreshAllData()
@@ -223,10 +260,10 @@ local function onEvent(_, event)
   if (event == "GUILD_ROSTER_UPDATE") then
     local numTotalMembers = GetNumGuildMembers()
     for i = 1, numTotalMembers do
-      local fullname, _, _, _, _, _, _, _, online = GetGuildRosterInfo(i)
+      local fullname, _, _, level, _, zone, _, _, online, status, class = GetGuildRosterInfo(i)
       if (fullname ~= nil) then
         local name = strsplit(NAME_SEPERATOR, fullname)
-        guildMembersOnline[name] = online
+        guildMembers[name] = {name, level, zone, online, status, class}
       end
     end
   end
