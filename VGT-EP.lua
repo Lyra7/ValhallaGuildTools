@@ -284,10 +284,13 @@ VGT.HandleCombatLogEvent = function()
   local _, cTypeID, cInstanceUID, cInstanceID, cUnitUID, cUnitID, hex = strsplit("-", cUID)
   if (cEvent == "UNIT_DIED") then
     local creatureUID = VGT.StringAppend(cTypeID, cInstanceUID, cInstanceID, cUnitUID, cUnitID, hex)
-    local dungeonName = VGT.dungeons[tonumber(cInstanceID)][1]
-    local bossName = VGT.bosses[tonumber(cUnitID)]
-    if (creatureUID ~= nil and dungeonName ~= nil and bossName ~= nil) then
-      handleUnitDeath(creatureUID, dungeonName, bossName)
+    local dungeon = VGT.dungeons[tonumber(cInstanceID)]
+    if (dungeon ~= nil) then
+      local dungeonName = VGT.dungeons[tonumber(cInstanceID)][1]
+      local bossName = VGT.bosses[tonumber(cUnitID)]
+      if (creatureUID ~= nil and dungeonName ~= nil and bossName ~= nil) then
+        handleUnitDeath(creatureUID, dungeonName, bossName)
+      end
     end
   end
 end

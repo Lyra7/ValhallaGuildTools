@@ -139,7 +139,7 @@ local updatePins = function()
         else
           texture:SetTexCoord(0.51, 0.76, 0.00, 0.26) -- Green
         end
-        VGT.LIBS.HBDP:AddWorldMapIconWorld(MODULE_NAME, v[PIN_INDEX], tonumber(v[MAP_ID_INDEX]), tonumber(v[X_INDEX]), tonumber(v[Y_INDEX]), 3, "PIN_FRAME_LEVEL_WORLD_QUEST")
+        VGT.LIBS.HBDP:AddWorldMapIconWorld(MODULE_NAME, v[PIN_INDEX], tonumber(v[MAP_ID_INDEX]), tonumber(v[X_INDEX]), tonumber(v[Y_INDEX]), 3, "PIN_FRAME_LEVEL_GROUP_MEMBER")
       end
     end
     HBD_GetPins().worldmapProvider:RefreshAllData()
@@ -209,6 +209,10 @@ end
 
 local updateMapVisibility = function()
   if (WorldMapFrame:IsVisible()) then
+    if (not isMapVisible) then
+      isMapVisible = true
+      updatePins()
+    end
     isMapVisible = true
   else
     isMapVisible = false
@@ -220,8 +224,10 @@ local function onEvent(_, event)
     local numTotalMembers = GetNumGuildMembers()
     for i = 1, numTotalMembers do
       local fullname, _, _, _, _, _, _, _, online = GetGuildRosterInfo(i)
-      local name = strsplit(NAME_SEPERATOR, fullname)
-      guildMembersOnline[name] = online
+      if (fullname ~= nil) then
+        local name = strsplit(NAME_SEPERATOR, fullname)
+        guildMembersOnline[name] = online
+      end
     end
   end
 end
@@ -230,6 +236,7 @@ end
 -- ##### GLOBAL FUNCTIONS #####################################
 -- ############################################################
 
+--TODO should unregister comm while in a raid so traffic doesn't get throttled
 local initialized = false
 function VGT.Map_Initialize()
   if (VGT.OPTIONS.MAP.enabled) then
