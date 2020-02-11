@@ -179,7 +179,7 @@ local updatePins = function()
         VGT.LIBS.HBDP:AddWorldMapIconWorld(MODULE_NAME, v[PIN_INDEX], instanceMapId, tonumber(v[X_INDEX]), tonumber(v[Y_INDEX]), 3, "PIN_FRAME_LEVEL_GROUP_MEMBER")
       end
     end
-    HBD_GetPins().worldmapProvider:RefreshAllData()
+    VGT.LIBS.HBDP:GetPins().worldmapProvider:RefreshAllData()
   end
 end
 

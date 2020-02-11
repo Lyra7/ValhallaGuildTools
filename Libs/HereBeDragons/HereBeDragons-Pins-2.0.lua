@@ -5,9 +5,7 @@ assert(LibStub, MAJOR .. " requires LibStub")
 
 local pins, _oldversion = LibStub:NewLibrary(MAJOR, MINOR)
 if not pins then return end
-function HBD_GetPins()
-  return pins
-end
+
 
 local HBD = LibStub("HereBeDragons-2.0")
 
@@ -508,6 +506,9 @@ function worldmapProvider:HandlePin(icon, data)
 
   HBD.RegisterCallback(pins, "PlayerZoneChanged", UpdateMinimap)
 
+  function pins:GetPins()
+    return pins
+  end
 
   --- Add a icon to the minimap (x/y world coordinate version)
   -- Note: This API does not let you specify a map to limit the pin to, it'll be shown on all maps these coordinates are valid for.
