@@ -11,7 +11,7 @@ local isMapVisible = false
 local FRAME_TYPE = "Frame"
 local PLAYER = "player"
 local COMM_CHANNEL = "GUILD"
-local COMM_PRIORITY = "ALERT"
+local COMM_PRIORITY = "NORMAL"
 local PERCENT = "%"
 local NEW_LINE = "\n"
 local DELIMITER = ":"
@@ -41,30 +41,6 @@ local NAME_INDEX = 1
 -- ############################################################
 -- ##### LOCAL FUNCTIONS ######################################
 -- ############################################################
-
-local colorGradient = function(perc, ...)
-  if perc >= 1 then
-    local r, g, b = select(select('#', ...) - 2, ...)
-    return r, g, b
-  elseif perc <= 0 then
-    local r, g, b = ...
-    return r, g, b
-  end
-
-  local num = select('#', ...) / 3
-
-  local segment, relperc = math.modf(perc * (num - 1))
-  local r1, g1, b1, r2, g2, b2 = select((segment * 3) + 1, ...)
-
-  return r1 + (r2 - r1) * relperc, g1 + (g2 - g1) * relperc, b1 + (b2 - b1) * relperc
-end
-
-local function RGBPercToHex(r, g, b)
-  r = r <= 1 and r >= 0 and r or 0
-  g = g <= 1 and g >= 0 and g or 0
-  b = b <= 1 and b >= 0 and b or 0
-  return string.format("%02x%02x%02x", r * 255, g * 255, b * 255)
-end
 
 local worldPosition = function(decimals)
   local x, y, instanceMapId = VGT.LIBS.HBD:GetPlayerWorldPosition()
@@ -102,7 +78,7 @@ local findClosePlayers = function(x, y, name, active)
       if (abs(x - v[X_INDEX]) + abs(y - v[Y_INDEX]) < 50) then
         closePlayers = closePlayers
         ..colorString(select(4, GetClassColor(guildMembers[k][6])), k)..HP_SEPERATOR
-        ..colorString("ff"..RGBPercToHex(colorGradient(tonumber(v[HP_INDEX]), 1, 0, 0, 1, 1, 0, 0, 1, 0)), VGT.Round(v[HP_INDEX] * 100, 0)..PERCENT)..NEW_LINE
+        ..colorString("ff"..VGT.RGBToHex(VGT.ColorGradient(tonumber(v[HP_INDEX]), 1, 0, 0, 1, 1, 0, 0, 1, 0)), VGT.Round(v[HP_INDEX] * 100, 0)..PERCENT)..NEW_LINE
       end
     end
   end
@@ -121,7 +97,7 @@ local onEnterPin = function(self)
   local name = pins[self][NAME_INDEX]
   GameTooltip:SetText(guildMembers[name][3]..NEW_LINE
     ..colorString(select(4, GetClassColor(guildMembers[name][6])), name)..HP_SEPERATOR
-    ..colorString("ff"..RGBPercToHex(colorGradient(tonumber(players[name][HP_INDEX]), 1, 0, 0, 1, 1, 0, 0, 1, 0)), VGT.Round(players[name][HP_INDEX] * 100, 0)..PERCENT)
+    ..colorString("ff"..VGT.RGBToHex(VGT.ColorGradient(tonumber(players[name][HP_INDEX]), 1, 0, 0, 1, 1, 0, 0, 1, 0)), VGT.Round(players[name][HP_INDEX] * 100, 0)..PERCENT)
   ..findClosePlayers(players[name][X_INDEX], players[name][Y_INDEX], name, players[name][ACTIVE_INDEX]))
   GameTooltip:Show()
 end
@@ -256,7 +232,7 @@ local updateMapVisibility = function()
   end
 end
 
-local function onEvent(_, event)
+local onEvent = function(_, event)
   if (event == "GUILD_ROSTER_UPDATE") then
     local numTotalMembers = GetNumGuildMembers()
     for i = 1, numTotalMembers do
@@ -269,19 +245,37 @@ local function onEvent(_, event)
   end
 end
 
+local lastUpdate = GetTime()
+local main = function(timer)
+  local now = GetTime()
+  local delay = 3
+  if (UnitAffectingCombat(PLAYER)) then
+    delay = 6
+  end
+  if (select(1, IsInInstance())) then
+    delay = 60
+  end
+  if (UnitIsAFK(PLAYER)) then
+    delay = 120
+  end
+  updateMapVisibility()
+  if (now - lastUpdate >= delay) then
+    updatePins()
+    lastUpdate = now
+  end
+end
+
 -- ############################################################
 -- ##### GLOBAL FUNCTIONS #####################################
 -- ############################################################
 
---TODO should unregister comm while in a raid so traffic doesn't get throttled
 local initialized = false
 function VGT.Map_Initialize()
   if (VGT.OPTIONS.MAP.enabled) then
     if (not initialized) then
       createBufferPins()
       VGT.LIBS:RegisterComm(MODULE_NAME, handleMapMessageReceivedEvent)
-      VGT.LIBS:ScheduleRepeatingTimer(updateMapVisibility, 0.05)
-      VGT.LIBS:ScheduleRepeatingTimer(updatePins, VGT.OPTIONS.MAP.updateSpeed)
+      VGT.LIBS:ScheduleRepeatingTimer(main, 0.05)
       initialized = true
     end
   end

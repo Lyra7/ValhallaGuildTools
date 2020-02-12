@@ -235,6 +235,7 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
     if (event == "SYNCHRONIZATION_REQUEST") then
       if (count ~= VGT.Count(VGT_EPDB)) then
         for k, v in pairs(VGT_EPDB) do
+          --TODO BIG BUG HERE, invalidated records are sent out because database cleaning is asynchronous
           --if (validateRecord(k, v, playerName)) then
           local message = format("%s;%s", k, v)
           VGT.Log(VGT.LOG_LEVEL.TRACE, "sending %s to %s for %s:SYNCHRONIZATION_REQUEST.", message, sender, MODULE_NAME)
