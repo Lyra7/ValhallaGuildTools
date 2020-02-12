@@ -141,10 +141,10 @@ local updatePins = function()
     local currentPlayer = UnitName(PLAYER)
     for k, v in pairs(players) do
       if (validate(v)) then
-	    local status = getStatus(currentPlayer, k, v)
-		if (status ~= CONST_UNCHANGED) then
-		  VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, v[PIN_INDEX])
-		  if (status ~= CONST_REMOVE) then
+        local status = getStatus(currentPlayer, k, v)
+        if (status ~= CONST_UNCHANGED) then
+          VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, v[PIN_INDEX])
+          if (status ~= CONST_REMOVE) then
             local texture = v[TEXTURE_INDEX]
             if (UnitInParty(k)) then
               texture:SetTexCoord(0.00, 0.26, 0.26, 0.51) -- Blue
@@ -157,10 +157,10 @@ local updatePins = function()
               instanceMapId = instance[4]
             end
             VGT.LIBS.HBDP:AddWorldMapIconWorld(MODULE_NAME, v[PIN_INDEX], instanceMapId, tonumber(v[NEW_X_INDEX]), tonumber(v[NEW_Y_INDEX]), 3, "PIN_FRAME_LEVEL_GROUP_MEMBER")
-			v[X_INDEX] = v[NEW_X_INDEX]
-			v[Y_INDEX] = v[NEW_Y_INDEX]
+            v[X_INDEX] = v[NEW_X_INDEX]
+            v[Y_INDEX] = v[NEW_Y_INDEX]
           else
-		    v[ACTIVE_INDEX] = false
+            v[ACTIVE_INDEX] = false
           end
         end
       end
@@ -222,8 +222,8 @@ local handleMapMessageReceivedEvent = function(prefix, message, distribution, se
     if (players[sender] == nil) then
       pin, texture = findNextPin()
     else
-	  oldX = players[sender][X_INDEX]
-	  oldY = players[sender][Y_INDEX]
+      oldX = players[sender][X_INDEX]
+      oldY = players[sender][Y_INDEX]
       pin = players[sender][PIN_INDEX]
       texture = players[sender][TEXTURE_INDEX]
     end
