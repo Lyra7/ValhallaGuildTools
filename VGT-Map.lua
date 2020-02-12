@@ -129,7 +129,7 @@ local validate = function(data)
     and data[TEXTURE_INDEX] ~= nil
     and data[MAP_ID_INDEX] ~= nil
     and data[X_INDEX] ~= nil
-    and data[Y_INDEX] ~= nil) then
+  and data[Y_INDEX] ~= nil) then
     return true
   end
   return false
@@ -140,7 +140,7 @@ local updatePins = function()
     cleanPins()
     for k, v in pairs(players) do
       if (validate(v)) then
-		VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, v[PIN_INDEX])
+        VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, v[PIN_INDEX])
         local texture = v[TEXTURE_INDEX]
         if (UnitInParty(k)) then
           texture:SetTexCoord(0.00, 0.26, 0.26, 0.51) -- Blue
