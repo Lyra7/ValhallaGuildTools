@@ -34,9 +34,16 @@ local MAP_ID_INDEX = 4
 local X_INDEX = 5
 local Y_INDEX = 6
 local HP_INDEX = 7
+local NEW_X_INDEX = 8
+local NEW_Y_INDEX = 9
 
 -- PINS INDEXING
 local NAME_INDEX = 1
+
+-- Status Constants
+local CONST_UNCHANGED = 0
+local CONST_CHANGED = 1
+local CONST_REMOVE = 2
 
 -- ############################################################
 -- ##### LOCAL FUNCTIONS ######################################
@@ -106,53 +113,56 @@ local onLeavePin = function(self)
   GameTooltip:Hide()
 end
 
-local removePin = function(name, pin)
-  VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, pin)
-  players[name][ACTIVE_INDEX] = false
-end
-
-local cleanPins = function()
-  local playerName = UnitName(PLAYER)
-  for k, v in pairs(players) do
-    if (k == playerName and VGT.OPTIONS.MAP.showMe == false) then
-      removePin(k, players[k][PIN_INDEX])
-    end
-    if (not guildMembers[k][4]) then
-      removePin(k, players[k][PIN_INDEX])
-    end
-  end
-end
-
 local validate = function(data)
   if ((data[ACTIVE_INDEX] == nil or data[ACTIVE_INDEX])
     and data[PIN_INDEX] ~= nil
     and data[TEXTURE_INDEX] ~= nil
     and data[MAP_ID_INDEX] ~= nil
-    and data[X_INDEX] ~= nil
-  and data[Y_INDEX] ~= nil) then
+    and data[NEW_X_INDEX] ~= nil
+    and data[NEW_Y_INDEX] ~= nil) then
     return true
   end
   return false
 end
 
+local getStatus = function(currentPlayer, player, data)
+  if ((player == currentPlayer and VGT.OPTIONS.MAP.showMe == false)
+    or not guildMembers[player][4]) then
+    return CONST_REMOVE
+  end
+  if (data[X_INDEX] ~= data[NEW_X_INDEX] or data[Y_INDEX] ~= data[NEW_Y_INDEX]) then
+    return CONST_CHANGED
+  end
+  return CONST_UNCHANGED
+end
+
 local updatePins = function()
   if (isMapVisible) then
-    cleanPins()
+    local currentPlayer = UnitName(PLAYER)
     for k, v in pairs(players) do
       if (validate(v)) then
-        VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, v[PIN_INDEX])
-        local texture = v[TEXTURE_INDEX]
-        if (UnitInParty(k)) then
-          texture:SetTexCoord(0.00, 0.26, 0.26, 0.51) -- Blue
-        else
-          texture:SetTexCoord(0.51, 0.76, 0.00, 0.26) -- Green
+        local status = getStatus(currentPlayer, k, v)
+        if (status ~= CONST_UNCHANGED) then
+          VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, v[PIN_INDEX])
+          if (status ~= CONST_REMOVE) then
+            local texture = v[TEXTURE_INDEX]
+            if (UnitInParty(k)) then
+              texture:SetTexCoord(0.00, 0.26, 0.26, 0.51) -- Blue
+            else
+              texture:SetTexCoord(0.51, 0.76, 0.00, 0.26) -- Green
+            end
+            local instanceMapId = tonumber(v[MAP_ID_INDEX])
+            local instance = VGT.dungeons[instanceMapId] or VGT.raids[instanceMapId]
+            if (instance ~= nil) then
+              instanceMapId = instance[4]
+            end
+            VGT.LIBS.HBDP:AddWorldMapIconWorld(MODULE_NAME, v[PIN_INDEX], instanceMapId, tonumber(v[NEW_X_INDEX]), tonumber(v[NEW_Y_INDEX]), 3, "PIN_FRAME_LEVEL_GROUP_MEMBER")
+            v[X_INDEX] = v[NEW_X_INDEX]
+            v[Y_INDEX] = v[NEW_Y_INDEX]
+          else
+            v[ACTIVE_INDEX] = false
+          end
         end
-        local instanceMapId = tonumber(v[MAP_ID_INDEX])
-        local instance = VGT.dungeons[instanceMapId] or VGT.raids[instanceMapId]
-        if (instance ~= nil) then
-          instanceMapId = instance[4]
-        end
-        VGT.LIBS.HBDP:AddWorldMapIconWorld(MODULE_NAME, v[PIN_INDEX], instanceMapId, tonumber(v[X_INDEX]), tonumber(v[Y_INDEX]), 3, "PIN_FRAME_LEVEL_GROUP_MEMBER")
       end
     end
   end
@@ -206,15 +216,18 @@ local handleMapMessageReceivedEvent = function(prefix, message, distribution, se
   end
 
   local instanceMapId, x, y, hp = strsplit(DELIMITER, message)
+  local oldX, oldY
   if (tonumber(instanceMapId)) then
     local pin, texture
     if (players[sender] == nil) then
       pin, texture = findNextPin()
     else
+      oldX = players[sender][X_INDEX]
+      oldY = players[sender][Y_INDEX]
       pin = players[sender][PIN_INDEX]
       texture = players[sender][TEXTURE_INDEX]
     end
-    players[sender] = {true, pin, texture, instanceMapId, x, y, hp}
+    players[sender] = {true, pin, texture, instanceMapId, oldX, oldY, hp, x, y}
     pins[pin] = {sender}
   end
 end
@@ -258,9 +271,9 @@ local main = function(timer)
     delay = 120
   end
   updateMapVisibility()
+  updatePins()
   if (now - lastUpdate >= delay) then
     sendMyLocation()
-    updatePins()
     lastUpdate = now
   end
 end
