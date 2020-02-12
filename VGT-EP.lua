@@ -233,14 +233,16 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
 
   if (distribution == "GUILD") then
     if (event == "SYNCHRONIZATION_REQUEST") then
-      if (count ~= VGT.Count(VGT_EPDB)) then
-        for k, v in pairs(VGT_EPDB) do
-          --TODO BIG BUG HERE, invalidated records are sent out because database cleaning is asynchronous
-          --if (validateRecord(k, v, playerName)) then
-          local message = format("%s;%s", k, v)
-          VGT.Log(VGT.LOG_LEVEL.TRACE, "sending %s to %s for %s:SYNCHRONIZATION_REQUEST.", message, sender, MODULE_NAME)
-          VGT.LIBS:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
-          --end
+      if (select(2, IsInInstance()) ~= "raid") then
+        if (count ~= VGT.Count(VGT_EPDB)) then
+          for k, v in pairs(VGT_EPDB) do
+            --TODO BIG BUG HERE, invalidated records are sent out because database cleaning is asynchronous
+            --if (validateRecord(k, v, playerName)) then
+            local message = format("%s;%s", k, v)
+            VGT.Log(VGT.LOG_LEVEL.TRACE, "sending %s to %s for %s:SYNCHRONIZATION_REQUEST.", message, sender, MODULE_NAME)
+            VGT.LIBS:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
+            --end
+          end
         end
       end
     else
