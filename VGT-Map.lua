@@ -135,30 +135,24 @@ local validate = function(data)
   return false
 end
 
-local hasUpdate = function(data)
-  return true -- TODO
-end
-
 local updatePins = function()
   if (isMapVisible) then
     cleanPins()
     for k, v in pairs(players) do
       if (validate(v)) then
 		VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, v[PIN_INDEX])
-	    if (hasUpdate(v)) then
-          local texture = v[TEXTURE_INDEX]
-          if (UnitInParty(k)) then
-            texture:SetTexCoord(0.00, 0.26, 0.26, 0.51) -- Blue
-          else
-            texture:SetTexCoord(0.51, 0.76, 0.00, 0.26) -- Green
-          end
-          local instanceMapId = tonumber(v[MAP_ID_INDEX])
-          local instance = VGT.dungeons[instanceMapId] or VGT.raids[instanceMapId]
-          if (instance ~= nil) then
-            instanceMapId = instance[4]
-          end
-          VGT.LIBS.HBDP:AddWorldMapIconWorld(MODULE_NAME, v[PIN_INDEX], instanceMapId, tonumber(v[X_INDEX]), tonumber(v[Y_INDEX]), 3, "PIN_FRAME_LEVEL_GROUP_MEMBER")
-		end
+        local texture = v[TEXTURE_INDEX]
+        if (UnitInParty(k)) then
+          texture:SetTexCoord(0.00, 0.26, 0.26, 0.51) -- Blue
+        else
+          texture:SetTexCoord(0.51, 0.76, 0.00, 0.26) -- Green
+        end
+        local instanceMapId = tonumber(v[MAP_ID_INDEX])
+        local instance = VGT.dungeons[instanceMapId] or VGT.raids[instanceMapId]
+        if (instance ~= nil) then
+          instanceMapId = instance[4]
+        end
+        VGT.LIBS.HBDP:AddWorldMapIconWorld(MODULE_NAME, v[PIN_INDEX], instanceMapId, tonumber(v[X_INDEX]), tonumber(v[Y_INDEX]), 3, "PIN_FRAME_LEVEL_GROUP_MEMBER")
       end
     end
   end
