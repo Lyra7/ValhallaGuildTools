@@ -7,7 +7,7 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: Bonkeybee
-## Version: 11303.41
+## Version: 11303.42
 
 
 Libs\LibStub\LibStub.lua

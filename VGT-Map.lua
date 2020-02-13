@@ -55,7 +55,6 @@ local worldPosition = function(decimals)
   if (dungeon ~= nil and dungeon[2] ~= nil and dungeon[3] ~= nil and dungeon[4] ~= nil) then
     x = dungeon[2]
     y = dungeon[3]
-    --instanceMapId = dungeon[4]
   end
   return VGT.Round(x, decimals or 0), VGT.Round(y, decimals or 0), instanceMapId
 end
@@ -119,7 +118,7 @@ local validate = function(data)
     and data[TEXTURE_INDEX] ~= nil
     and data[MAP_ID_INDEX] ~= nil
     and data[NEW_X_INDEX] ~= nil
-    and data[NEW_Y_INDEX] ~= nil) then
+  and data[NEW_Y_INDEX] ~= nil) then
     return true
   end
   return false
@@ -127,7 +126,7 @@ end
 
 local getStatus = function(currentPlayer, player, data)
   if ((player == currentPlayer and VGT.OPTIONS.MAP.showMe == false)
-    or not guildMembers[player][4]) then
+  or not guildMembers[player][4]) then
     return CONST_REMOVE
   end
   if (data[X_INDEX] ~= data[NEW_X_INDEX] or data[Y_INDEX] ~= data[NEW_Y_INDEX]) then
@@ -215,19 +214,21 @@ local handleMapMessageReceivedEvent = function(prefix, message, distribution, se
     return
   end
 
-  local instanceMapId, x, y, hp = strsplit(DELIMITER, message)
-  local oldX, oldY
+  local instanceMapId, newX, newY, hp = strsplit(DELIMITER, message)
+  local x, y
   if (tonumber(instanceMapId)) then
     local pin, texture
     if (players[sender] == nil) then
+      x = newX
+      y = newY
       pin, texture = findNextPin()
     else
-      oldX = players[sender][X_INDEX]
-      oldY = players[sender][Y_INDEX]
+      x = players[sender][X_INDEX]
+      y = players[sender][Y_INDEX]
       pin = players[sender][PIN_INDEX]
       texture = players[sender][TEXTURE_INDEX]
     end
-    players[sender] = {true, pin, texture, instanceMapId, oldX, oldY, hp, x, y}
+    players[sender] = {true, pin, texture, instanceMapId, x, y, hp, newX, newY}
     pins[pin] = {sender}
   end
 end
