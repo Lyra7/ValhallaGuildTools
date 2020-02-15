@@ -5,7 +5,6 @@ local BUFFER_STEP = 10
 local guildMembers = {}
 local bufferPins = {}
 local players = {}
-local pins = {}
 local isMapVisible = false
 
 local FRAME_TYPE = "Frame"
@@ -17,8 +16,6 @@ local NEW_LINE = "\n"
 local DELIMITER = ":"
 local NAME_SEPERATOR = "-"
 local HP_SEPERATOR = " - "
-local ANCHOR_LEFT = "ANCHOR_LEFT"
-local ANCHOR_RIGHT = "ANCHOR_RIGHT"
 local BACKGROUND = "BACKGROUND"
 local SCRIPT_ENTER = "OnEnter"
 local SCRIPT_LEAVE = "OnLeave"
@@ -36,9 +33,6 @@ local Y_INDEX = 6
 local HP_INDEX = 7
 local NEW_X_INDEX = 8
 local NEW_Y_INDEX = 9
-
--- PINS INDEXING
-local NAME_INDEX = 1
 
 -- Status Constants
 local CONST_UNCHANGED = 0
@@ -92,15 +86,8 @@ local findClosePlayers = function(x, y, name, active)
 end
 
 local onEnterPin = function(self)
-  local uiX, uiY = self:GetCenter()
-  local parentX, parentY = UIParent:GetCenter()
-  if (uiX > parentX) then
-    GameTooltip:SetOwner(self, ANCHOR_LEFT)
-  else
-    GameTooltip:SetOwner(self, ANCHOR_RIGHT)
-  end
-
-  local name = pins[self][NAME_INDEX]
+  GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+  local name = self.Player
   GameTooltip:SetText(guildMembers[name][3]..NEW_LINE
     ..colorString(select(4, GetClassColor(guildMembers[name][6])), name)..HP_SEPERATOR
     ..colorString("ff"..VGT.RGBToHex(VGT.ColorGradient(tonumber(players[name][HP_INDEX]), 1, 0, 0, 1, 1, 0, 0, 1, 0)), VGT.Round(players[name][HP_INDEX] * 100, 0)..PERCENT)
@@ -222,6 +209,7 @@ local handleMapMessageReceivedEvent = function(prefix, message, distribution, se
       x = newX
       y = newY
       pin, texture = findNextPin()
+      pin.Player = sender
     else
       x = players[sender][X_INDEX]
       y = players[sender][Y_INDEX]
@@ -229,7 +217,6 @@ local handleMapMessageReceivedEvent = function(prefix, message, distribution, se
       texture = players[sender][TEXTURE_INDEX]
     end
     players[sender] = {true, pin, texture, instanceMapId, x, y, hp, newX, newY}
-    pins[pin] = {sender}
   end
 end
 
