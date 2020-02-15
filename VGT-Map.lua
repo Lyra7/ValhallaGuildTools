@@ -79,7 +79,7 @@ end
 local findClosePlayers = function(x, y, name, active)
   local closePlayers = NEW_LINE
   for k, v in pairs(players) do
-    if (active and (name == nil or name ~= k)) then
+    if (active and (name == nil or name ~= k) and v[ACTIVE_INDEX]) then
       -- TODO distance needs to increase as map zooms out
       if (abs(x - v[X_INDEX]) + abs(y - v[Y_INDEX]) < 50) then
         closePlayers = closePlayers
