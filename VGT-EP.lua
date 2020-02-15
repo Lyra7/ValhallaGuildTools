@@ -2,6 +2,7 @@ local MODULE_NAME = "VGT-EP"
 local MY_EPDB = {}
 local CleanDatabase = CreateFrame("Frame");
 local PushDatabase = CreateFrame("Frame");
+local synchronize = false
 
 -- ############################################################
 -- ##### LOCAL FUNCTIONS ######################################
@@ -179,13 +180,13 @@ end
 function PushDatabase:onUpdate(sinceLastUpdate, firstKey, currentKey)
   self.sinceLastUpdate = (self.sinceLastUpdate or 0) + sinceLastUpdate
   if (self.sinceLastUpdate >= 0.1) then
-    if (synchronize and commAvailability() >= 50) then
+    if (synchronize and VGT.CommAvailability() >= 50) then
       currentKey, value = next(VGT_EPDB, currentKey)
       if (currentKey == firstKey) then
         synchronize = false
         firstKey = nil
       end
-      if (key == nil) then
+      if (firstKey == nil) then
         firstKey = currentKey
       end
       if (currentKey ~= nil) then
@@ -256,14 +257,7 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
     if (event == "SYNCHRONIZATION_REQUEST") then
       if (select(2, IsInInstance()) ~= "raid") then
         if (count ~= VGT.Count(VGT_EPDB)) then
-          for k, v in pairs(VGT_EPDB) do
-            --TODO BIG BUG HERE, invalidated records are sent out because database cleaning is asynchronous
-            --if (validateRecord(k, v, playerName)) then
-            local message = format("%s;%s", k, v)
-            VGT.Log(VGT.LOG_LEVEL.TRACE, "sending %s to %s for %s:SYNCHRONIZATION_REQUEST.", message, sender, MODULE_NAME)
-            VGT.LIBS:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
-            --end
-          end
+          synchronize = true
         end
       end
     else
@@ -331,7 +325,7 @@ VGT.EP_Initialize = function()
       CleanDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate, firstKey, currentKey) CleanDatabase:onUpdate(sinceLastUpdate, firstKey, currentKey) end)
       PushDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate, firstKey, currentKey) PushDatabase:onUpdate(sinceLastUpdate, firstKey, currentKey) end)
       VGT.LIBS:RegisterComm(MODULE_NAME, handleEPMessageReceivedEvent)
-      VGT.LIBS:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST:"..VGT.Count(VGT_EPDB), "GUILD", nil, "ALERT")
+      VGT.LIBS:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST:"..VGT.Count(VGT_EPDB), "GUILD")
       initialized = true
     end
   end

@@ -4,8 +4,8 @@ VGT.LIBS = LibStub("AceAddon-3.0"):NewAddon(VGT_ADDON_NAME,
 "AceComm-3.0", "AceTimer-3.0", "AceEvent-3.0")
 VGT.LIBS.HBD = LibStub("HereBeDragons-2.0")
 VGT.LIBS.HBDP = LibStub("HereBeDragons-Pins-2.0")
-local MODULE_NAME = "VGT-Core"
 VGT.CORE_FRAME = CreateFrame("Frame")
+local MODULE_NAME = "VGT-Core"
 
 -- ############################################################
 -- ##### LOCAL FUNCTIONS ######################################
@@ -32,6 +32,10 @@ end
 -- ############################################################
 -- ##### GLOBAL FUNCTIONS #####################################
 -- ############################################################
+
+function VGT.CommAvailability()
+  return (floor(_G.ChatThrottleLib:UpdateAvail()) / 4000) * 100
+end
 
 function VGT.ColorGradient(perc, ...)
   if perc >= 1 then
