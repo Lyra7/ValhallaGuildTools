@@ -55,6 +55,12 @@ function VGT.RGBToHex(r, g, b)
 end
 
 function VGT.Round(number, decimals)
+  if (number == nil) then
+    number = 0
+  end
+  if (decimals == nil) then
+    decimals = 0
+  end
   return (("%%.%df"):format(decimals)):format(number)
 end
 

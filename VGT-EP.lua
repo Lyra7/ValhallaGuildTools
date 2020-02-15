@@ -1,6 +1,7 @@
 local MODULE_NAME = "VGT-EP"
 local MY_EPDB = {}
 local CleanDatabase = CreateFrame("Frame");
+local PushDatabase = CreateFrame("Frame");
 
 -- ############################################################
 -- ##### LOCAL FUNCTIONS ######################################
@@ -159,9 +160,7 @@ local cleanRecord = function(k, v)
   end
 end
 
-local firstKey
-local currentKey
-function CleanDatabase:onUpdate(sinceLastUpdate)
+function CleanDatabase:onUpdate(sinceLastUpdate, firstKey, currentKey)
   self.sinceLastUpdate = (self.sinceLastUpdate or 0) + sinceLastUpdate
   if (self.sinceLastUpdate >= 0.05) then
     currentKey, currentValue = next(VGT_EPDB, currentKey)
@@ -174,6 +173,28 @@ function CleanDatabase:onUpdate(sinceLastUpdate)
       cleanRecord(currentKey, currentValue)
     end
     self.sinceLastUpdate = 0
+  end
+end
+
+function PushDatabase:onUpdate(sinceLastUpdate, firstKey, currentKey)
+  self.sinceLastUpdate = (self.sinceLastUpdate or 0) + sinceLastUpdate
+  if (self.sinceLastUpdate >= 0.1) then
+    if (synchronize and commAvailability() >= 50) then
+      currentKey, value = next(VGT_EPDB, currentKey)
+      if (currentKey == firstKey) then
+        synchronize = false
+        firstKey = nil
+      end
+      if (key == nil) then
+        firstKey = currentKey
+      end
+      if (currentKey ~= nil) then
+        local message = format("%s;%s", currentKey, value)
+        VGT.Log(VGT.LOG_LEVEL.TRACE, "sending %s to GUILD for %s:SYNCHRONIZATION_REQUEST.", message, MODULE_NAME)
+        VGT.LIBS:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
+      end
+      self.sinceLastUpdate = 0
+    end
   end
 end
 
@@ -307,7 +328,8 @@ VGT.EP_Initialize = function()
       if (VGT_EPDB == nil) then
         VGT_EPDB = {}
       end
-      CleanDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate) CleanDatabase:onUpdate(sinceLastUpdate) end)
+      CleanDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate, firstKey, currentKey) CleanDatabase:onUpdate(sinceLastUpdate, firstKey, currentKey) end)
+      PushDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate, firstKey, currentKey) PushDatabase:onUpdate(sinceLastUpdate, firstKey, currentKey) end)
       VGT.LIBS:RegisterComm(MODULE_NAME, handleEPMessageReceivedEvent)
       VGT.LIBS:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST:"..VGT.Count(VGT_EPDB), "GUILD", nil, "ALERT")
       initialized = true

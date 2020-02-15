@@ -56,7 +56,7 @@ local worldPosition = function(decimals)
     x = dungeon[2]
     y = dungeon[3]
   end
-  return VGT.Round(x, decimals or 0), VGT.Round(y, decimals or 0), instanceMapId
+  return VGT.Round(x, decimals), VGT.Round(y, decimals), instanceMapId
 end
 
 local sendMyLocation = function()
