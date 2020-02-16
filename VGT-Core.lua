@@ -37,6 +37,14 @@ function VGT.CommAvailability()
   return (floor(_G.ChatThrottleLib:UpdateAvail()) / 4000) * 100
 end
 
+function VGT.IsInRaid()
+  if(select(2, IsInInstance()) == "raid") then
+    return true
+  else
+    return false
+  end
+end
+
 function VGT.ColorGradient(perc, ...)
   if perc >= 1 then
     local r, g, b = select(select('#', ...) - 2, ...)

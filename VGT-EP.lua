@@ -180,7 +180,7 @@ end
 function PushDatabase:onUpdate(sinceLastUpdate, firstKey, currentKey)
   self.sinceLastUpdate = (self.sinceLastUpdate or 0) + sinceLastUpdate
   if (self.sinceLastUpdate >= 0.1) then
-    if (synchronize and VGT.CommAvailability() >= 50) then
+    if (synchronize and VGT.CommAvailability() >= 50 and not VGT.IsInRaid()) then
       currentKey, value = next(VGT_EPDB, currentKey)
       if (currentKey == firstKey) then
         synchronize = false
