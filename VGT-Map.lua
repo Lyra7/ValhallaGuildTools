@@ -258,7 +258,7 @@ local updatePins = function()
           VGT.LIBS.HBDP:AddWorldMapIconWorld(MODULE_NAME, player.WorldmapPin, player.ContinentId, player.X, player.Y, 3, "PIN_FRAME_LEVEL_GROUP_MEMBER")
         end
         if (VGT.OPTIONS.MAP.mode ~= "map" and not UnitIsUnit(name, "player")) then
-          VGT.LIBS.HBDP:AddMinimapIconWorld(MODULE_NAME, player.MinimapPin, player.ContinentId, player.X, player.Y, not UnitInParty(name))
+          VGT.LIBS.HBDP:AddMinimapIconWorld(MODULE_NAME, player.MinimapPin, player.ContinentId, player.X, player.Y, false)
         end
       end
       player.PendingLocationChange = false
