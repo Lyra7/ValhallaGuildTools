@@ -278,6 +278,8 @@ end
 local updatePartyMembers = function()
   if (VGT.OPTIONS.MAP.showMe) then
     addOrUpdatePartyMember("player")
+  else
+    destroyPlayer(UnitName(PLAYER))
   end
   if (UnitPlayerOrPetInRaid("player")) then
     for i = 1, 40 do
@@ -309,6 +311,7 @@ local handleMapMessageReceivedEvent = function(prefix, message, distribution, se
 
   local playerName = UnitName(PLAYER)
   if (not VGT.OPTIONS.MAP.showMe and sender == playerName) then
+    destroyPlayer(playerName)
     return
   end
 
