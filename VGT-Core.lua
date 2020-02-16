@@ -4,8 +4,8 @@ VGT.LIBS = LibStub("AceAddon-3.0"):NewAddon(VGT_ADDON_NAME,
 "AceComm-3.0", "AceTimer-3.0", "AceEvent-3.0")
 VGT.LIBS.HBD = LibStub("HereBeDragons-2.0")
 VGT.LIBS.HBDP = LibStub("HereBeDragons-Pins-2.0")
-local MODULE_NAME = "VGT-Core"
 VGT.CORE_FRAME = CreateFrame("Frame")
+local MODULE_NAME = "VGT-Core"
 
 -- ############################################################
 -- ##### LOCAL FUNCTIONS ######################################
@@ -33,6 +33,18 @@ end
 -- ##### GLOBAL FUNCTIONS #####################################
 -- ############################################################
 
+function VGT.CommAvailability()
+  return (floor(_G.ChatThrottleLib:UpdateAvail()) / 4000) * 100
+end
+
+function VGT.IsInRaid()
+  if(select(2, IsInInstance()) == "raid") then
+    return true
+  else
+    return false
+  end
+end
+
 function VGT.ColorGradient(perc, ...)
   if perc >= 1 then
     local r, g, b = select(select('#', ...) - 2, ...)
@@ -55,6 +67,12 @@ function VGT.RGBToHex(r, g, b)
 end
 
 function VGT.Round(number, decimals)
+  if (number == nil) then
+    number = 0
+  end
+  if (decimals == nil) then
+    decimals = 0
+  end
   return (("%%.%df"):format(decimals)):format(number)
 end
 
