@@ -52,8 +52,12 @@ VGT.DefaultConfig = function(VGT_OPTIONS)
   VGT_OPTIONS.LOG.logLevel = default(VGT_OPTIONS.LOG.logLevel, VGT.LOG.LEVELS[VGT.LOG_LEVEL.INFO])
   VGT_OPTIONS.MAP.enabled = default(VGT_OPTIONS.MAP.enabled, true)
   VGT_OPTIONS.MAP.sendMyLocation = default(VGT_OPTIONS.MAP.sendMyLocation, true)
-  VGT_OPTIONS.MAP.showMe = default(VGT_OPTIONS.MAP.showMe, true)
-  VGT_OPTIONS.MAP.updateSpeed = default(VGT_OPTIONS.MAP.updateSpeed, 1.5)
+  if (VGT_OPTIONS.MAP.mode == nil) then
+    VGT_OPTIONS.MAP.mode = "both"
+    VGT_OPTIONS.MAP.showMe = false
+  else
+    VGT_OPTIONS.MAP.showMe = default(VGT_OPTIONS.MAP.showMe, false)
+  end
   return VGT_OPTIONS
 end
 
@@ -133,6 +137,7 @@ local options = {
       type = "group",
       args = {
         enable = {
+          order = 0,
           name = "Enable",
           desc = "REQUIRES RELOAD",
           type = "toggle",
@@ -140,6 +145,7 @@ local options = {
           get = function(info) return VGT.OPTIONS.MAP.enabled end
         },
         send_my_location = {
+          order = 1,
           name = "Send My Location",
           desc = "sends your location to other addon users",
           type = "toggle",
@@ -147,22 +153,27 @@ local options = {
           get = function(info) return VGT.OPTIONS.MAP.sendMyLocation end
         },
         show_me = {
+          order = 2,
           name = "Show My Pin",
-          desc = "shows your own pin on the world map",
+          desc = "shows your own pin on the map",
           type = "toggle",
           set = function(info, val) VGT.OPTIONS.MAP.showMe = val end,
           get = function(info) return VGT.OPTIONS.MAP.showMe end
         },
-        update_speed = {
-          name = "Update Speed",
-          desc = "the speed of which the map pins will update in seconds",
-          type = "range",
-          min = 0.5,
-          max = 6,
-          step = 0.5,
-          set = function(info, val) VGT.OPTIONS.MAP.updateSpeed = val end,
-          get = function(info) return VGT.OPTIONS.MAP.updateSpeed end
-        },
+        map_mode = {
+          order = 3,
+          name = "Display Mode",
+          desc = "choose where pins are shown",
+          values = {
+            ["map"] = "Only World Map",
+            ["minimap"] = "Only Minimap",
+            ["both"] = "World Map and Minimap"
+          },
+          type = "select",
+          style = "dropdown",
+          get = function(info) return VGT.OPTIONS.MAP.mode end,
+          set = function(info, val) VGT.OPTIONS.MAP.mode = val end
+        }
       }
     }
   }
