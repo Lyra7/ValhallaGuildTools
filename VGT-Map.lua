@@ -1,7 +1,7 @@
 local MODULE_NAME = "VGT-Map"
 local FRAME = CreateFrame("Frame")
 
-local BUFFER_STEP = 10
+local bufferSize = 0
 local bufferPins = {}
 local players = {}
 local zoneCache = {}
@@ -69,38 +69,30 @@ local onLeavePin = function(self)
   GameTooltip:Hide()
 end
 
-local createBufferPins = function()
-  for i = 1, BUFFER_STEP do
-    local pin = CreateFrame(FRAME_TYPE, nil, WorldFrame)
-    pin:SetWidth(PIN_SIZE)
-    pin:SetHeight(PIN_SIZE)
-    local texture = pin:CreateTexture(nil, BACKGROUND)
-    texture:SetTexCoord(0.51, 0.76, 0.00, 0.26) -- Green
-    texture:SetAllPoints()
-    pin:EnableMouse(true)
-    bufferPins[i] = {pin, texture}
-  end
+local createNewPin = function()
+  local pin = CreateFrame(FRAME_TYPE, nil, WorldFrame)
+  pin:SetWidth(PIN_SIZE)
+  pin:SetHeight(PIN_SIZE)
+  local texture = pin:CreateTexture(nil, BACKGROUND)
+  texture:SetTexCoord(0.51, 0.76, 0.00, 0.26) -- Green
+  texture:SetAllPoints()
+  pin:EnableMouse(true)
+  pin.Texture = texture
+  return pin
 end
 
-local findPin = function()
-  for i = 1, VGT.Count(bufferPins) do
-    if (bufferPins[i] ~= nil and bufferPins[i][1] and bufferPins[i][2]) then
-      local pin = bufferPins[i][1]
-      local texture = bufferPins[i][2]
-      bufferPins[i][1] = nil
-      bufferPins[i][2] = nil
-      return pin, texture
-    end
+local takeFromBufferPool = function()
+  if (bufferSize == 0) then
+    return createNewPin()
   end
-  createBufferPins()
+  local pin = bufferPins[bufferSize]
+  bufferSize = bufferSize - 1
+  return pin
 end
 
-local findNextPin = function()
-  local pin, texture
-  while (pin == nil) do
-    pin, texture = findPin()
-  end
-  return pin, texture
+local returnToBufferPool = function(pin)
+  bufferSize = bufferSize + 1
+  bufferPins[bufferSize] = pin
 end
 
 local createWorldmapPin = function(player)
@@ -126,13 +118,13 @@ local createWorldmapPin = function(player)
     GameTooltip:SetText(formatTooltip(self.Player, distance))
     GameTooltip:Show()
   end
-  local pin, texture = findNextPin()
+  local pin = takeFromBufferPool()
   pin:SetScript(SCRIPT_ENTER, onEnterPin)
   pin:SetScript(SCRIPT_LEAVE, onLeavePin)
-  texture:SetTexture(PIN_TEXTURE)
+  pin.Texture:SetTexture(PIN_TEXTURE)
   pin.Player = player
   player.WorldmapPin = pin
-  player.WorldmapTexture = texture
+  player.WorldmapTexture = pin.Texture
 end
 
 local createMinimapPin = function(player)
@@ -143,13 +135,13 @@ local createMinimapPin = function(player)
     GameTooltip:SetText(formatTooltip(self.Player, distance))
     GameTooltip:Show()
   end
-  local pin, texture = findNextPin()
+  local pin = takeFromBufferPool()
   pin:SetScript(SCRIPT_ENTER, onEnterPin)
   pin:SetScript(SCRIPT_LEAVE, onLeavePin)
-  texture:SetTexture(PIN_TEXTURE)
+  pin.Texture:SetTexture(PIN_TEXTURE)
   pin.Player = player
   player.MinimapPin = pin
-  player.MinimapTexture = texture
+  player.MinimapTexture = pin.Texture
 end
 
 local getClass = function(name)
@@ -246,6 +238,8 @@ local destroyPlayer = function(name)
     players[name] = nil
     VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, player.WorldmapPin)
     VGT.LIBS.HBDP:RemoveMinimapIcon(MODULE_NAME, player.MinimapPin)
+    returnToBufferPool(player.WorldmapPin)
+    returnToBufferPool(player.MinimapPin)
   end
 end
 
@@ -280,8 +274,8 @@ local updatePins = function()
 
   for name, player in pairs(players) do
     if (player.PendingLocationChange) then
-      VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, player.WorldmapPin)
-      VGT.LIBS.HBDP:RemoveMinimapIcon(MODULE_NAME, player.MinimapPin)
+      --VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, player.WorldmapPin)
+      --VGT.LIBS.HBDP:RemoveMinimapIcon(MODULE_NAME, player.MinimapPin)
       if (UnitInParty(name)) then
         player.MinimapTexture:SetTexCoord(0.00, 0.26, 0.26, 0.51) -- Blue
         player.WorldmapTexture:SetTexCoord(0.00, 0.26, 0.26, 0.51) -- Blue
@@ -314,7 +308,7 @@ local addOrUpdatePartyMember = function(unit)
         addOrUpdatePlayer(name, dungeon[2], dungeon[3], dungeon[4], UnitHealth(unit) / UnitHealthMax(unit), false, dungeon[1])
         return
       else
-        destroyPlayer(name) -- Unit is in an unknown instance. Don't show a pin.
+        --destroyPlayer(name) -- Unit is in an unknown instance. Don't show a pin.
       end
     end
 
@@ -411,7 +405,7 @@ local cleanUnusedPins = function()
   for name, player in pairs(players) do
     local destroy = false
 
-    if (not UnitPlayerOrPetInParty(name) and not UnitPlayerOrPetInRaid(name) and not player.HasCommMessages and not UnitIsUnit(name, PLAYER)) then
+    if (not UnitInParty(name) and not player.HasCommMessages and not UnitIsUnit(name, PLAYER)) then
       destroyPlayer(name) -- remove non-party members that aren't sending comm messages
     end
 
@@ -421,25 +415,28 @@ local cleanUnusedPins = function()
   end
 end
 
+local initialized = false
 local lastUpdate = GetTime()
 local main = function()
-  local now = GetTime()
-  local delay = 3
-  if (UnitAffectingCombat(PLAYER)) then
-    delay = 6
-  end
-  if (select(1, IsInInstance())) then
-    delay = 60
-  end
-  if (UnitIsAFK(PLAYER)) then
-    delay = 120
-  end
-  updatePartyMembers()
-  cleanUnusedPins()
-  updatePins()
-  if (now - lastUpdate >= delay) then
-    sendMyLocation()
-    lastUpdate = now
+  if (initialized) then
+    local now = GetTime()
+    local delay = 3
+    if (UnitAffectingCombat(PLAYER)) then
+      delay = 6
+    end
+    if (select(1, IsInInstance())) then
+      delay = 60
+    end
+    if (UnitIsAFK(PLAYER)) then
+      delay = 120
+    end
+    updatePartyMembers()
+    cleanUnusedPins()
+    updatePins()
+    if (now - lastUpdate >= delay) then
+      sendMyLocation()
+      lastUpdate = now
+    end
   end
 end
 
@@ -447,11 +444,9 @@ end
 -- ##### GLOBAL FUNCTIONS #####################################
 -- ############################################################
 
-local initialized = false
 function VGT.Map_Initialize()
   if (VGT.OPTIONS.MAP.enabled) then
     if (not initialized) then
-      createBufferPins()
       VGT.LIBS:RegisterComm(MODULE_NAME, handleMapMessageReceivedEvent)
       initialized = true
     end
