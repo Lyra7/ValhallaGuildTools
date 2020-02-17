@@ -8,6 +8,9 @@ VGT.raids[409] = {"Molten Core", - 1039.7, - 7508.3, 0}
 VGT.raids["Onyxia's Lair"] = 249
 VGT.raids[249] = {"Onyxia's Lair", - 3754.4, - 4750.4, 1}
 
+VGT.raids["Blackwing Lair"] = 469
+VGT.raids[469] = {"Blackwing Lair", - 1228.4, - 7524.7, 0}
+
 VGT.dungeons["Ragefire Chasm"] = 389
 VGT.dungeons[389] = {"Ragefire Chasm", - 4419.2, 1815, 1}
 VGT.bosses[11520] = "Taragaman the Hungerer"
