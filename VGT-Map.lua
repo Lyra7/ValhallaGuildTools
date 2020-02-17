@@ -4,6 +4,7 @@ local FRAME = CreateFrame("Frame")
 local BUFFER_STEP = 10
 local bufferPins = {}
 local players = {}
+local zoneCache = {}
 
 local FRAME_TYPE = "Frame"
 local PLAYER = "player"
@@ -115,22 +116,20 @@ local getClass = function(name)
     for i = 1, 5 do
       local unitId = "party"..i
       if (UnitName(unitId) == name) then
-        local _, class = UnitClass(unitId)
+        local class = select(2, UnitClass(unitId))
         if class then return class end
       end
     end
   end
-
   if (UnitPlayerOrPetInRaid(name)) then
     for i = 1, 40 do
       local unitId = "raid"..i
       if (UnitName(unitId) == name) then
-        local _, class = UnitClass(unitId)
+        local class = select(2, UnitClass(unitId))
         if class then return class end
       end
     end
   end
-
   local numTotalMembers = GetNumGuildMembers()
   for i = 1, numTotalMembers do
     local fullname, _, _, _, _, _, _, _, _, _, class = GetGuildRosterInfo(i)
@@ -155,7 +154,8 @@ local isDungeonCoords = function(x, y, instanceMapId, decimals)
   return false
 end
 
-local getInGuild = function(name)
+local getInGuild = function(name, fromCommMessage)
+  if (fromCommMessage) then return true end
   local numTotalMembers = GetNumGuildMembers()
   for i = 1, numTotalMembers do
     local fullname, _, _, level, _, zone, _, _, online, status, class = GetGuildRosterInfo(i)
@@ -169,7 +169,7 @@ local getInGuild = function(name)
   return false
 end
 
-local addOrUpdatePlayer = function(name, x, y, continentId, hp, fromMessage)
+local addOrUpdatePlayer = function(name, x, y, continentId, hp, fromCommMessage, zone)
   local player = players[name]
   if (not player) then
     player = {}
@@ -188,16 +188,19 @@ local addOrUpdatePlayer = function(name, x, y, continentId, hp, fromMessage)
     player.ContinentId = nil
     player.Class = getClass(name)
     player.Name = name
-    player.InGuild = getInGuild(name)
+    player.InGuild = getInGuild(name, fromCommMessage)
+    player.HasCommMessages = false
+    player.LastCommReceived = 0
     players[name] = player
   end
-  player.HP = hp
 
-  if (player.LastChangeFromMessage and not fromMessage and isDungeonCoords(player.X, player.Y, player.ContinentID)) then
-    return -- skip updates from blizzard coords when dungeon coordinates are present.
+  if (fromCommMessage) then
+    player.HasCommMessages = true
+    player.LastCommReceived = GetTime()
   end
 
-  player.LastChangeFromMessage = fromMessage
+  player.HP = hp
+  player.Zone = zone
   player.PendingLocationChange = (x ~= player.X or y ~= player.Y or continentId ~= player.ContinentId)
   player.X = x 
   player.Y = y
@@ -258,7 +261,7 @@ local updatePins = function()
           VGT.LIBS.HBDP:AddWorldMapIconWorld(MODULE_NAME, player.WorldmapPin, player.ContinentId, player.X, player.Y, 3, "PIN_FRAME_LEVEL_GROUP_MEMBER")
         end
         if (VGT.OPTIONS.MAP.mode ~= "map" and not UnitIsUnit(name, "player")) then
-          VGT.LIBS.HBDP:AddMinimapIconWorld(MODULE_NAME, player.MinimapPin, player.ContinentId, player.X, player.Y, false)
+          VGT.LIBS.HBDP:AddMinimapIconWorld(MODULE_NAME, player.MinimapPin, player.ContinentId, player.X, player.Y, VGT.OPTIONS.MAP.showMinimapOutOfBounds and UnitInParty(name))
         end
       end
       player.PendingLocationChange = false
@@ -270,8 +273,28 @@ end
 local addOrUpdatePartyMember = function(unit)
   local name = UnitName(unit)
   if (name ~= nil) then
-    local x, y, continentId = VGT.LIBS.HBD:GetUnitWorldPosition(name)
-    addOrUpdatePlayer(name, x, y, continentId, UnitHealth(name) / UnitHealthMax(name), false)
+    local x, y, continentOrInstanceId = VGT.LIBS.HBD:GetUnitWorldPosition(name)
+
+    if (x == nil or y == nil) then
+      local dungeon = (VGT.dungeons[continentOrInstanceId] or VGT.raids[continentOrInstanceId])
+      if (dungeon ~= nil and dungeon[2] ~= nil and dungeon[3] ~= nil and dungeon[4] ~= nil) then
+        addOrUpdatePlayer(name, dungeon[2], dungeon[3], dungeon[4], UnitHealth(unit) / UnitHealthMax(unit), false, dungeon[1])
+        return
+      else
+        destroyPlayer(name) -- Unit is in an unknown instance. Don't show a pin.
+      end
+    end
+
+    local zone
+    local mapId = C_Map.GetBestMapForUnit(unit)
+    if (mapId) then
+      local mapInfo = C_Map.GetMapInfo(mapId)
+      if (mapInfo) then
+        zone = mapInfo.name
+      end
+    end
+    
+    addOrUpdatePlayer(name, x, y, continentOrInstanceId, UnitHealth(unit) / UnitHealthMax(unit), false, zone)
   end
 end
 
@@ -292,36 +315,6 @@ local updatePartyMembers = function()
       end
     end
   end
-  for name, player in pairs(players) do
-    if (not UnitPlayerOrPetInParty(name) and not UnitPlayerOrPetInRaid(name) and not player.InGuild) then
-      destroyPlayer(name)
-    end
-  end
-end
-
-local parseMessage = function(message)
-  local continentIdString, xString, yString, hpString = strsplit(DELIMITER, message)
-  return tonumber(continentIdString), tonumber(xString), tonumber(yString), tonumber(hpString)
-end
-
-local handleMapMessageReceivedEvent = function(prefix, message, distribution, sender)
-  if (prefix ~= MODULE_NAME) then
-    return
-  end
-
-  local playerName = UnitName(PLAYER)
-  if (not VGT.OPTIONS.MAP.showMe and sender == playerName) then
-    destroyPlayer(playerName)
-    return
-  end
-
-  local continentId, x, y, hp = parseMessage(message)
-
-  if (continentId ~= nil and x ~= nil and y ~= nil) then
-    if (sender ~= playerName and not UnitInParty(sender)) then
-      addOrUpdatePlayer(sender, x, y, continentId, hp, true)
-    end
-  end
 end
 
 local updateFromGuildRoster = function()
@@ -334,28 +327,64 @@ local updateFromGuildRoster = function()
 
       if (player ~= nil) then
         if (not online) then
+          zoneCache[name] = nil
           destroyPlayer(name)
         else
+          zoneCache[name] = zone
           player.InGuild = true
           player.Zone = zone
-          if (player.Zone ~= nil) then
-            local dungeonId = (VGT.dungeons[player.Zone] or VGT.raids[player.Zone])
-            if (dungeonId ~= nil) then
-              local dungeon = (VGT.dungeons[dungeonId] or VGT.raids[dungeonId])
-              if (dungeon ~= nil and dungeon[2] ~= nil and dungeon[3] ~= nil and dungeon[4] ~= nil) then
-                addOrUpdatePlayer(name, dungeon[2], dungeon[3], dungeon[4], player.HP, true)
-              end
-            end
-          end
+          player.Class = class
         end
       end
     end
   end
 end
 
+local getZoneFromGuild = function(name)
+  local zone = zoneCache[name]
+
+  if not zone then
+    updateFromGuildRoster()
+    zone = zoneCache[name]
+  end
+
+  return zone
+end
+
+local parseMessage = function(message)
+  local continentIdString, xString, yString, hpString = strsplit(DELIMITER, message)
+  return tonumber(continentIdString), tonumber(xString), tonumber(yString), tonumber(hpString)
+end
+
+local handleMapMessageReceivedEvent = function(prefix, message, distribution, sender)
+  if (prefix ~= MODULE_NAME) then
+    return
+  end
+
+  local continentId, x, y, hp = parseMessage(message)
+
+  if (continentId ~= nil and x ~= nil and y ~= nil and not UnitIsUnit(sender, PLAYER) and not UnitInParty(sender)) then
+    addOrUpdatePlayer(sender, x, y, continentId, hp, true, getZoneFromGuild(sender))
+  end
+end
+
 local onEvent = function(_, event)
   if (event == "GUILD_ROSTER_UPDATE") then
     updateFromGuildRoster()
+  end
+end
+
+local cleanUnusedPins = function()
+  for name, player in pairs(players) do
+    local destroy = false
+
+    if (not UnitPlayerOrPetInParty(name) and not UnitPlayerOrPetInRaid(name) and not player.HasCommMessages) then
+      destroyPlayer(name) -- remove non-party members that aren't sending comm messages
+    end
+
+    if (player.HasCommMessages and player.LastCommReceived and (GetTime() - player.LastCommReceived) > 180) then
+      destroyPlayer(name) -- remove pins that haven't had a new comm message in 3 minutes. (happens if a user disables reporting, or if the addon crashes)
+    end
   end
 end
 
@@ -373,7 +402,7 @@ local main = function()
     delay = 120
   end
   updatePartyMembers()
-  updateFromGuildRoster()
+  cleanUnusedPins()
   updatePins()
   if (now - lastUpdate >= delay) then
     sendMyLocation()
