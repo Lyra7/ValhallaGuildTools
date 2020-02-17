@@ -47,10 +47,7 @@ local formatPlayerTooltip = function(player)
   end
 end
 
-local onEnterPin = function(self)
-  GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
-  local player = self.Player
-
+local formatTooltip = function(player, distance)
   local text = ""
 
   if (player.Zone ~= nil) then
@@ -58,16 +55,14 @@ local onEnterPin = function(self)
   end
 
   text = text..formatPlayerTooltip(player)
-
+  
   for _, otherPlayer in pairs(players) do
-    -- TODO distance needs to increase as map zooms out
-    if (otherPlayer ~= player and otherPlayer.X ~= nil and otherPlayer.Y ~= nil and player.X ~= nil and player.Y ~= nil and (abs(player.X - otherPlayer.X) + abs(player.Y - otherPlayer.Y) < 50)) then
+    if (otherPlayer ~= player and otherPlayer.X ~= nil and otherPlayer.Y ~= nil and player.X ~= nil and player.Y ~= nil and (abs(player.X - otherPlayer.X) + abs(player.Y - otherPlayer.Y) < distance)) then
       text = text..NEW_LINE..formatPlayerTooltip(otherPlayer)
     end
   end
 
-  GameTooltip:SetText(text)
-  GameTooltip:Show()
+  return text
 end
 
 local onLeavePin = function(self)
@@ -80,12 +75,9 @@ local createBufferPins = function()
     pin:SetWidth(PIN_SIZE)
     pin:SetHeight(PIN_SIZE)
     local texture = pin:CreateTexture(nil, BACKGROUND)
-    texture:SetTexture(PIN_TEXTURE)
     texture:SetTexCoord(0.51, 0.76, 0.00, 0.26) -- Green
     texture:SetAllPoints()
     pin:EnableMouse(true)
-    pin:SetScript(SCRIPT_ENTER, onEnterPin)
-    pin:SetScript(SCRIPT_LEAVE, onLeavePin)
     bufferPins[i] = {pin, texture}
   end
 end
@@ -109,6 +101,55 @@ local findNextPin = function()
     pin, texture = findPin()
   end
   return pin, texture
+end
+
+local createWorldmapPin = function(player)
+  local onEnterPin = function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+    local distance = 50
+    local mapId = VGT.LIBS.HBDP.worldmapProvider:GetMap():GetMapID()
+    if (mapId) then
+      local mapData = VGT.LIBS.HBD.mapData[mapId]
+      if (mapData and mapData.mapType) then
+        --todo: these are just my best guesses of distances. Probably should be tweaked.
+        if (mapData.mapType == 1) then --world
+          distance = 300
+        end
+        if (mapData.mapType == 2) then --continent
+          distance = 100
+        end
+        if (mapData.mapType == 3) then --zone or city
+          distance = 25
+        end
+      end
+    end
+    GameTooltip:SetText(formatTooltip(self.Player, distance))
+    GameTooltip:Show()
+  end
+  local pin, texture = findNextPin()
+  pin:SetScript(SCRIPT_ENTER, onEnterPin)
+  pin:SetScript(SCRIPT_LEAVE, onLeavePin)
+  texture:SetTexture(PIN_TEXTURE)
+  pin.Player = player
+  player.WorldmapPin = pin
+  player.WorldmapTexture = texture
+end
+
+local createMinimapPin = function(player)
+  local onEnterPin = function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
+    local distance = 15
+    --todo set distance for minimap based on zoom level
+    GameTooltip:SetText(formatTooltip(self.Player, distance))
+    GameTooltip:Show()
+  end
+  local pin, texture = findNextPin()
+  pin:SetScript(SCRIPT_ENTER, onEnterPin)
+  pin:SetScript(SCRIPT_LEAVE, onLeavePin)
+  texture:SetTexture(PIN_TEXTURE)
+  pin.Player = player
+  player.MinimapPin = pin
+  player.MinimapTexture = texture
 end
 
 local getClass = function(name)
@@ -173,16 +214,8 @@ local addOrUpdatePlayer = function(name, x, y, continentId, hp, fromCommMessage,
   local player = players[name]
   if (not player) then
     player = {}
-    local pin, texture = findNextPin()
-    pin.Player = player
-    player.WorldmapPin = pin
-    player.WorldmapTexture = texture
-    pin = nil
-    texture = nil
-    pin, texture = findNextPin()
-    pin.Player = player
-    player.MinimapPin = pin
-    player.MinimapTexture = texture
+    createMinimapPin(player)
+    createWorldmapPin(player)
     player.X = 0
     player.Y = 0
     player.ContinentId = nil
@@ -378,7 +411,7 @@ local cleanUnusedPins = function()
   for name, player in pairs(players) do
     local destroy = false
 
-    if (not UnitPlayerOrPetInParty(name) and not UnitPlayerOrPetInRaid(name) and not player.HasCommMessages) then
+    if (not UnitPlayerOrPetInParty(name) and not UnitPlayerOrPetInRaid(name) and not player.HasCommMessages and not UnitIsUnit(name, PLAYER)) then
       destroyPlayer(name) -- remove non-party members that aren't sending comm messages
     end
 
