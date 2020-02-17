@@ -52,6 +52,7 @@ VGT.DefaultConfig = function(VGT_OPTIONS)
   VGT_OPTIONS.LOG.logLevel = default(VGT_OPTIONS.LOG.logLevel, VGT.LOG.LEVELS[VGT.LOG_LEVEL.INFO])
   VGT_OPTIONS.MAP.enabled = default(VGT_OPTIONS.MAP.enabled, true)
   VGT_OPTIONS.MAP.sendMyLocation = default(VGT_OPTIONS.MAP.sendMyLocation, true)
+  VGT_OPTIONS.MAP.showMinimapOutOfBounds = default(VGT_OPTIONS.MAP.showMinimapOutOfBounds, false)
   if (VGT_OPTIONS.MAP.mode == nil) then
     VGT_OPTIONS.MAP.mode = "both"
     VGT_OPTIONS.MAP.showMe = false
@@ -160,8 +161,16 @@ local options = {
           set = function(info, val) VGT.OPTIONS.MAP.showMe = val end,
           get = function(info) return VGT.OPTIONS.MAP.showMe end
         },
-        map_mode = {
+        show_minimap_oob = {
           order = 3,
+          name = "Show Distant Players on Minimap",
+          desc = "shows party member pins on the minimap borders if they are out of range",
+          type = "toggle",
+          set = function(info, val) VGT.OPTIONS.MAP.showMinimapOutOfBounds = val end,
+          get = function(info) return VGT.OPTIONS.MAP.showMinimapOutOfBounds end
+        },
+        map_mode = {
+          order = 4,
           name = "Display Mode",
           desc = "choose where pins are shown",
           values = {
