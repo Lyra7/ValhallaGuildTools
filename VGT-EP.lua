@@ -10,11 +10,7 @@ local synchronize = false
 
 -- Create a list of unique players sorted alphabetically that were found in the EPDB
 --	timeframeInDays: default 7, controls how long ago to look for records in the EPDB
-local constructPlayerTableFromHistory = function(timeframeInDays)
-  if (timeframeInDays == nil or timeframeInDays <= 0) then
-    timeframeInDays = 7
-  end
-  local timeframeInSeconds = timeframeInDays * 86400
+local constructPlayerTableFromHistory = function()
   local currentTime = GetServerTime()
   local playersTable = {}
   local playerName = UnitName("player")
@@ -255,10 +251,8 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
 
   if (distribution == "GUILD") then
     if (event == "SYNCHRONIZATION_REQUEST") then
-      if (select(2, IsInInstance()) ~= "raid") then
-        if (count ~= VGT.Count(VGT_EPDB)) then
-          synchronize = true
-        end
+      if (count ~= VGT.Count(VGT_EPDB)) then
+        synchronize = true
       end
     else
       local key, value = strsplit(";", message)
@@ -277,21 +271,82 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
   end
 end
 
+VGT.rewardEP = function()
+  local currentTime = GetServerTime()
+  local players = {}
+  for player, playerData in pairs(VGT_EPDB2[VGT.GetMyGuildName()]) do
+    local oldestTimestamp = currentTime
+    local oldestGuid
+    local killCount = 0
+    for guid, guidData in pairs(playerData) do
+      local timestamp = tonumber(guidData[1])
+      local rewarded = guidData[4]
+      if (withinDays(timestamp, 21) and not rewarded) then
+        killCount = killCount + 1
+        if (timestamp < oldestTimestamp) then
+          oldestTimestamp = timestamp
+          oldestGuid = guid
+        end
+      end
+    end
+    if (oldestGuid ~= nil) then
+      local guidData = playerData[oldestGuid]
+      playerData[oldestGuid] = {guidData[1], guidData[2], guidData[3], true}
+      players[player] = true
+      print("rewarding "..player..", "..killCount.." left")
+    end
+  end
+  return players
+end
+
+VGT.importDB = function()
+  VGT_EPDB2 = {}
+  for k, v in pairs(VGT_EPDB) do
+    local module, guid, guild, playersCSV = strsplit(":", k)
+    local timestamp, dungeon, boss = strsplit(":", v)
+    if (playersCSV ~= nil) then
+      if (VGT_EPDB2[guild] == nil) then
+        VGT_EPDB2[guild] = {}
+      end
+      local players = {strsplit(",", playersCSV)}
+      for i = 1, #players do
+        if (VGT_EPDB2[guild][players[i]] == nil) then
+          VGT_EPDB2[guild][players[i]] = {}
+        end
+        if (VGT_EPDB2[guild][players[i]][guid] == nil) then
+          VGT_EPDB2[guild][players[i]][guid] = {}
+        end
+        VGT_EPDB2[guild][players[i]][guid] = {timestamp, VGT.dungeons[dungeon], VGT.bosses[boss]}
+      end
+    end
+  end
+end
+
 -- ############################################################
 -- ##### GLOBAL FUNCTIONS #####################################
 -- ############################################################
 
 -- Print the list of players who did dungeons within the timeframe
---	timeframeInDays: default 7, controls how long ago to look for records in the EPDB
-VGT.PrintDungeonList = function(timeframeInDays)
+VGT.PrintDungeonList = function()
   if (VGT.OPTIONS.EP.enabled) then
-    local str = VGT.TableToString(constructPlayerTableFromHistory(timeframeInDays), "", false, true, true)
+    local players = VGT.rewardEP()
+    local tempTable = {}
+    for player, _ in pairs(players) do
+      table.insert(tempTable, player)
+    end
+    table.sort(tempTable)
+    local str = ""
+    for _, player in pairs(tempTable) do
+      str = str.."\n"..player
+    end
+    str = string.sub(str, 2)
+
+    local text = VGT.Count(players).."\n"..str
     VGT_DUNGEONS_FRAME:Show();
     VGT_DUNGEONS_FRAME_SCROLL:Show()
     VGT_DUNGEONS_FRAME_TEXT:Show()
-    VGT_DUNGEONS_FRAME_TEXT:SetText(str)
+    VGT_DUNGEONS_FRAME_TEXT:SetText(text)
     VGT_DUNGEONS_FRAME_TEXT:HighlightText()
-
     VGT_DUNGEONS_FRAME_BUTTON:SetScript("OnClick", function(self) VGT_DUNGEONS_FRAME:Hide() end)
     VGT_DUNGEONS_FRAME_TEXT:SetScript("OnEscapePressed", function(self) self:GetParent():GetParent():Hide() end)
   end
@@ -321,6 +376,9 @@ VGT.EP_Initialize = function()
     if (not initialized) then
       if (VGT_EPDB == nil) then
         VGT_EPDB = {}
+      end
+      if (VGT_EPDB2 == nil) then
+        VGT_EPDB2 = {}
       end
       CleanDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate, firstKey, currentKey) CleanDatabase:onUpdate(sinceLastUpdate, firstKey, currentKey) end)
       PushDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate, firstKey, currentKey) PushDatabase:onUpdate(sinceLastUpdate, firstKey, currentKey) end)
