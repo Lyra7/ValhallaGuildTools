@@ -1,5 +1,5 @@
-## Interface: 11304
-## X-Min-Interface: 11304
+## Interface: 11303
+## X-Min-Interface: 11303
 ## Title: ValhallaGuildTools
 ## Notes: Valhalla Guild Tools
 ## SavedVariables: VGT_OPTIONS
@@ -7,7 +7,7 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: Bonkeybee
-## Version: 11304.44
+## Version: 11303.45
 
 
 Libs\LibStub\LibStub.lua
@@ -26,4 +26,5 @@ VGT-Logging.lua
 VGT-EP.lua
 VGT-Douse.lua
 VGT-Map.lua
+VGT-Force.lua
 VGT-DungeonData.lua

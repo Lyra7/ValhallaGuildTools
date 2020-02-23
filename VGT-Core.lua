@@ -194,8 +194,14 @@ function VGT.TableContains(t, m)
   end
 
   for _, v in pairs(t) do
-    if (v == m) then
-      return true
+    if (type(v) == "table") then
+      if (v[1] == m) then
+        return true
+      end
+    else
+      if (v == m) then
+        return true
+      end
     end
   end
 

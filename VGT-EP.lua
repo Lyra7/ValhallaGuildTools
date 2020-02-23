@@ -1,48 +1,15 @@
 local MODULE_NAME = "VGT-EP"
 local MY_EPDB = {}
+local EPFRAME = CreateFrame("Frame");
 local CleanDatabase = CreateFrame("Frame");
 local PushDatabase = CreateFrame("Frame");
 local synchronize = false
 
+local MAX_TIME_TO_KEEP = 21
+
 -- ############################################################
 -- ##### LOCAL FUNCTIONS ######################################
 -- ############################################################
-
--- Create a list of unique players sorted alphabetically that were found in the EPDB
---	timeframeInDays: default 7, controls how long ago to look for records in the EPDB
-local constructPlayerTableFromHistory = function()
-  local currentTime = GetServerTime()
-  local playersTable = {}
-  local playerName = UnitName("player")
-
-  -- Loop through each record in the EPDB
-  for key, value in pairs(VGT_EPDB) do
-    local timestamp, dungeon, boss = strsplit(":", value)
-
-    -- Ignore records that are past the timeframe
-    if (timestamp + timeframeInSeconds > currentTime) then
-      local _, uid, guild, players = strsplit(":", key)
-      local myGuildName = VGT.GetMyGuildName()
-
-      -- Ignore records that don't match the player's guild name
-      if (myGuildName ~= nil and myGuildName == guild) then
-
-        -- Ignore records which don't have a valid uid
-        if (uid ~= nil) then
-          local localPlayersTable = {}
-
-          -- Ignore test records if the flag is false
-          if (not string.match(uid, "TEST")) then
-            localPlayersTable = {strsplit(",", players)}
-          end
-
-          playersTable = VGT.TableJoinToArray(playersTable, localPlayersTable)
-        end
-      end
-    end
-  end
-  return playersTable
-end
 
 -- Check if the local EPDB already has the
 local checkLocalDBForBossKill = function(key, value)
@@ -80,6 +47,7 @@ local withinDays = function(timestamp, days)
 end
 
 local validateTime = function(timestamp, sender)
+  --TODO SET MAX TIME
   if (withinDays(timestamp, 30)) then
     return true
   end
@@ -175,23 +143,27 @@ end
 
 function PushDatabase:onUpdate(sinceLastUpdate, firstKey, currentKey)
   self.sinceLastUpdate = (self.sinceLastUpdate or 0) + sinceLastUpdate
+  self.firstKey = (self.firstKey or firstKey)
+  self.currentKey = (self.currentKey or currentKey)
   if (self.sinceLastUpdate >= 0.1) then
     if (synchronize and VGT.CommAvailability() >= 50 and not VGT.IsInRaid()) then
-      currentKey, value = next(VGT_EPDB, currentKey)
-      if (currentKey == firstKey) then
+      self.currentKey, value = next(VGT_EPDB, self.currentKey)
+      if (self.currentKey == self.firstKey) then
         synchronize = false
-        firstKey = nil
+        self.firstKey = nil
+        self.currentKey = nil
+      else
+        if (self.firstKey == nil) then
+          self.firstKey = self.currentKey
+        end
+        if (self.currentKey ~= nil) then
+          local message = format("%s;%s", self.currentKey, value)
+          VGT.Log(VGT.LOG_LEVEL.TRACE, "sending %s to GUILD for %s:SYNCHRONIZATION_REQUEST.", message, MODULE_NAME)
+          VGT.LIBS:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
+        end
       end
-      if (firstKey == nil) then
-        firstKey = currentKey
-      end
-      if (currentKey ~= nil) then
-        local message = format("%s;%s", currentKey, value)
-        VGT.Log(VGT.LOG_LEVEL.TRACE, "sending %s to GUILD for %s:SYNCHRONIZATION_REQUEST.", message, MODULE_NAME)
-        VGT.LIBS:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
-      end
-      self.sinceLastUpdate = 0
     end
+    self.sinceLastUpdate = 0
   end
 end
 
@@ -271,6 +243,47 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
   end
 end
 
+local playerStatistics = function(player)
+  local playerData = VGT_EPDB2[VGT.GetMyGuildName()][player]
+  local oldestTimestamp = GetServerTime()
+  local oldestGuid
+  local totalKillCount = 0
+  local killCount = 0
+  local mostKilledBoss = {}
+  local mostKilledBossCount = 0
+  local mostKilledBossName = ""
+  local mostKilledBossDungeonName = ""
+
+  if (playerData ~= nil) then
+    for guid, guidData in pairs(playerData) do
+      local timestamp = tonumber(guidData[1])
+      local rewarded = guidData[4]
+      if (withinDays(timestamp, MAX_TIME_TO_KEEP)) then
+        totalKillCount = totalKillCount + 1
+        if (not rewarded) then
+          killCount = killCount + 1
+          if (not mostKilledBoss[guidData[3]]) then
+            mostKilledBoss[guidData[3]] = 0
+          end
+          mostKilledBoss[guidData[3]] = mostKilledBoss[guidData[3]] + 1
+          if (timestamp < oldestTimestamp) then
+            oldestTimestamp = timestamp
+            oldestGuid = guid
+          end
+        end
+      end
+    end
+    for k, v in pairs(mostKilledBoss) do
+      if (v > mostKilledBossCount) then
+        mostKilledBossCount = v
+        mostKilledBossName = VGT.bosses[k]
+        mostKilledBossDungeonName = VGT.dungeons[VGT.bosses[mostKilledBossName][2]][1]
+      end
+    end
+  end
+  return player, killCount, totalKillCount, mostKilledBossName, mostKilledBossCount, mostKilledBossDungeonName
+end
+
 VGT.rewardEP = function()
   local currentTime = GetServerTime()
   local players = {}
@@ -281,7 +294,7 @@ VGT.rewardEP = function()
     for guid, guidData in pairs(playerData) do
       local timestamp = tonumber(guidData[1])
       local rewarded = guidData[4]
-      if (withinDays(timestamp, 21) and not rewarded) then
+      if (withinDays(timestamp, MAX_TIME_TO_KEEP) and not rewarded) then
         killCount = killCount + 1
         if (timestamp < oldestTimestamp) then
           oldestTimestamp = timestamp
@@ -293,7 +306,6 @@ VGT.rewardEP = function()
       local guidData = playerData[oldestGuid]
       playerData[oldestGuid] = {guidData[1], guidData[2], guidData[3], true}
       players[player] = true
-      print("rewarding "..player..", "..killCount.." left")
     end
   end
   return players
@@ -316,7 +328,39 @@ VGT.importDB = function()
         if (VGT_EPDB2[guild][players[i]][guid] == nil) then
           VGT_EPDB2[guild][players[i]][guid] = {}
         end
-        VGT_EPDB2[guild][players[i]][guid] = {timestamp, VGT.dungeons[dungeon], VGT.bosses[boss]}
+        VGT_EPDB2[guild][players[i]][guid] = {timestamp, VGT.dungeons[dungeon], VGT.bosses[boss][1]}
+      end
+    end
+  end
+end
+
+local function tableSortTop(a, b)
+  return a[2] > b[2]
+end
+
+local dungeonQuery = function(_, event, message, sender)
+  if (event == "CHAT_MSG_GUILD") then
+    if (message == "?dungeon") then
+      local playerName = strsplit("-", sender)
+      local player, killCount, totalKillCount, mostKilledBossName, mostKilledBossCount, mostKilledBossDungeonName = playerStatistics(playerName)
+      SendChatMessage(format("#### %s STATISTICS ####", player), "WHISPER", nil, sender);
+      if (killCount == 0) then
+        SendChatMessage("  no recorded statistics, are you running ValhallaGuildTools?", "WHISPER", nil, sender);
+      else
+        SendChatMessage(format("  total bosses killed: %s", killCount), "WHISPER", nil, sender);
+        SendChatMessage(format("  most killed boss: %sx %s (%s)", mostKilledBossCount, mostKilledBossName, mostKilledBossDungeonName), "WHISPER", nil, sender);
+      end
+    end
+    if (message == "?dungeontop") then
+      local top = {}
+      for player, playerData in pairs(VGT_EPDB2[VGT.GetMyGuildName()]) do
+        local player, killCount, totalKillCount, mostKilledBossName, mostKilledBossCount, mostKilledBossDungeonName = playerStatistics(player)
+        table.insert(top, {player, killCount, mostKilledBossName, mostKilledBossCount})
+      end
+      table.sort(top, tableSortTop)
+      SendChatMessage(format("#### DUNGEON LEADERBOARD (%s days) ####", MAX_TIME_TO_KEEP), "GUILD")
+      for i = 1, 5 do
+        SendChatMessage(format("  %s killed %s bosses (%s %s kills)", top[i][1], top[i][2], top[i][4], top[i][3]), "GUILD")
       end
     end
   end
@@ -362,9 +406,12 @@ VGT.HandleCombatLogEvent = function()
     local dungeon = VGT.dungeons[tonumber(cInstanceID)]
     if (dungeon ~= nil) then
       local dungeonName = VGT.dungeons[tonumber(cInstanceID)][1]
-      local bossName = VGT.bosses[tonumber(cUnitID)]
-      if (creatureUID ~= nil and dungeonName ~= nil and bossName ~= nil) then
-        handleUnitDeath(creatureUID, dungeonName, bossName)
+      local bossData = VGT.bosses[tonumber(cUnitID)]
+      if (bossData ~= nil) then
+        local bossName = bossData[1]
+        if (creatureUID ~= nil and dungeonName ~= nil and bossName ~= nil) then
+          handleUnitDeath(creatureUID, dungeonName, bossName)
+        end
       end
     end
   end
@@ -387,4 +434,9 @@ VGT.EP_Initialize = function()
       initialized = true
     end
   end
+end
+
+if (IsGuildLeader()) then
+  EPFRAME:RegisterEvent("CHAT_MSG_GUILD")
+  EPFRAME:SetScript("OnEvent", dungeonQuery)
 end
