@@ -338,6 +338,36 @@ local function tableSortTop(a, b)
   return a[2] > b[2]
 end
 
+VGT.PrintPlayerStatistics = function(playerName)
+  if (playerName == nil) then
+    playerName = UnitName("player");
+  end
+  
+  playerName = playerName:gsub("^%l", string.upper)
+
+  local player, killCount, totalKillCount, mostKilledBossName, mostKilledBossCount, mostKilledBossDungeonName = playerStatistics(playerName)
+  VGT.Log(VGT.LOG_LEVEL.SYSTEM, format("%s Statistics", player));
+  if (killCount == 0) then
+    VGT.Log(VGT.LOG_LEVEL.SYSTEM, "  no recorded statistics found.");
+  else
+    VGT.Log(VGT.LOG_LEVEL.SYSTEM, format("  total bosses killed: %s", killCount));
+    VGT.Log(VGT.LOG_LEVEL.SYSTEM, format("  most killed boss: %sx %s (%s)", mostKilledBossCount, mostKilledBossName, mostKilledBossDungeonName));
+  end
+end
+
+VGT.PrintDungeonLeaderboard = function()
+  local top = {}
+  for player, playerData in pairs(VGT_EPDB2[VGT.GetMyGuildName()]) do
+    local player, killCount, totalKillCount, mostKilledBossName, mostKilledBossCount, mostKilledBossDungeonName = playerStatistics(player)
+    table.insert(top, {player, killCount, mostKilledBossName, mostKilledBossCount})
+  end
+  table.sort(top, tableSortTop)
+  VGT.Log(VGT.LOG_LEVEL.SYSTEM, format("#### DUNGEON LEADERBOARD (%s days) ####", MAX_TIME_TO_KEEP))
+  for i = 1, 5 do
+    VGT.Log(VGT.LOG_LEVEL.SYSTEM, format("  %s killed %s bosses (%s %s kills)", top[i][1], top[i][2], top[i][4], top[i][3]))
+  end
+end
+
 local dungeonQuery = function(_, event, message, sender)
   if (event == "CHAT_MSG_GUILD") then
     if (message == "?dungeon") then
