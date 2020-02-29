@@ -219,6 +219,9 @@ local addOrUpdatePlayer = function(name, x, y, continentId, hp, fromCommMessage,
     player.InGuild = getInGuild(name, fromCommMessage)
     player.HasCommMessages = false
     player.LastCommReceived = 0
+    if (UnitName("target") == name) then
+      player.Targeted = true
+    end
     players[name] = player
   end
 
@@ -269,6 +272,19 @@ local sendMyLocation = function()
   end
 end
 
+local updatePinColors = function(name, player)
+  if (player.Targeted) then
+    player.MinimapTexture:SetTexCoord(0.26, 0.51, 0.00, 0.26) -- Red
+    player.WorldmapTexture:SetTexCoord(0.26, 0.51, 0.00, 0.26) -- Red
+  elseif (UnitInParty(name)) then
+    player.MinimapTexture:SetTexCoord(0.00, 0.26, 0.26, 0.51) -- Blue
+    player.WorldmapTexture:SetTexCoord(0.00, 0.26, 0.26, 0.51) -- Blue
+  else
+    player.MinimapTexture:SetTexCoord(0.51, 0.76, 0.00, 0.26) -- Green
+    player.WorldmapTexture:SetTexCoord(0.51, 0.76, 0.00, 0.26) -- Green
+  end
+end
+
 local updatePins = function()
   if (C_PvP.IsPVPMap()) then
     if (originalPinsHidden and originalPartyAppearanceData and originalRaidAppearanceData) then
@@ -298,13 +314,7 @@ local updatePins = function()
     if (player.PendingLocationChange) then
       --VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, player.WorldmapPin)
       --VGT.LIBS.HBDP:RemoveMinimapIcon(MODULE_NAME, player.MinimapPin)
-      if (UnitInParty(name)) then
-        player.MinimapTexture:SetTexCoord(0.00, 0.26, 0.26, 0.51) -- Blue
-        player.WorldmapTexture:SetTexCoord(0.00, 0.26, 0.26, 0.51) -- Blue
-      else
-        player.MinimapTexture:SetTexCoord(0.51, 0.76, 0.00, 0.26) -- Green
-        player.WorldmapTexture:SetTexCoord(0.51, 0.76, 0.00, 0.26) -- Green
-      end
+      updatePinColors(name, player);
       if (player.ContinentId ~= nil and player.X ~= nil and player.Y ~= nil) then
         if (VGT.OPTIONS.MAP.mode ~= "minimap") then
           VGT.LIBS.HBDP:AddWorldMapIconWorld(MODULE_NAME, player.WorldmapPin, player.ContinentId, player.X, player.Y, 3, "PIN_FRAME_LEVEL_GROUP_MEMBER")
@@ -420,6 +430,17 @@ end
 local onEvent = function(_, event)
   if (event == "GUILD_ROSTER_UPDATE") then
     updateFromGuildRoster()
+  elseif (event == "PLAYER_TARGET_CHANGED") then
+    local targetName = UnitName("target"); -- UnitIsUnit does not work for non-grouped units.
+    for name, player in pairs(players) do
+      if (name == targetName) then
+        player.Targeted = true;
+        updatePinColors(name, player);
+      elseif (player.Targeted) then
+        player.Targeted = false;
+        updatePinColors(name, player);
+      end
+    end
   end
 end
 
@@ -475,5 +496,6 @@ function VGT.Map_Initialize()
   end
 end
 FRAME:RegisterEvent("GUILD_ROSTER_UPDATE")
+FRAME:RegisterEvent("PLAYER_TARGET_CHANGED")
 FRAME:SetScript("OnEvent", onEvent)
 FRAME:SetScript("OnUpdate", main)
