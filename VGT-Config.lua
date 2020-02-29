@@ -67,10 +67,6 @@ end
 -- ############################################################
 
 SLASH_VGT1 = "/vgt"
-SlashCmdList["VGT"] = function(message)
-  InterfaceOptionsFrame_OpenToCategory(VGT.menu)
-  InterfaceOptionsFrame_OpenToCategory(VGT.menu)
-end
 
 -- ############################################################
 -- ##### OPTIONS ##############################################

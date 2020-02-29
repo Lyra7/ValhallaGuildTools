@@ -22,6 +22,9 @@ local PIN_TEXTURE = "Interface\\MINIMAP\\ObjectIcons.blp"
 
 local PIN_SIZE = 10
 
+local originalPinsHidden = false
+local originalPartyAppearanceData
+local originalRaidAppearanceData
 local hiddenAppearanceData = {
 		size = 0,
 		sublevel = UNIT_POSITION_FRAME_DEFAULT_SUBLEVEL,
@@ -267,9 +270,28 @@ local sendMyLocation = function()
 end
 
 local updatePins = function()
-  for bpin in VGT.LIBS.HBDP.worldmapProvider:GetMap():EnumeratePinsByTemplate("GroupMembersPinTemplate") do
-    bpin.unitAppearanceData["raid"] = hiddenAppearanceData
-    bpin.unitAppearanceData["party"] = hiddenAppearanceData
+  if (C_PvP.IsPVPMap()) then
+    if (originalPinsHidden and originalPartyAppearanceData and originalRaidAppearanceData) then
+      for bpin in VGT.LIBS.HBDP.worldmapProvider:GetMap():EnumeratePinsByTemplate("GroupMembersPinTemplate") do
+        bpin.unitAppearanceData["raid"] = originalRaidAppearanceData
+        bpin.unitAppearanceData["party"] = originalPartyAppearanceData
+        originalPinsHidden = false
+      end
+    end
+  else
+    if (not originalPinsHidden) then
+      for bpin in VGT.LIBS.HBDP.worldmapProvider:GetMap():EnumeratePinsByTemplate("GroupMembersPinTemplate") do
+        if (not originalRaidAppearanceData) then
+          originalPartyAppearanceData = bpin.unitAppearanceData["raid"]
+        end
+        if (not originalPartyAppearanceData) then
+          originalRaidAppearanceData = bpin.unitAppearanceData["party"]
+        end
+        bpin.unitAppearanceData["raid"] = hiddenAppearanceData
+        bpin.unitAppearanceData["party"] = hiddenAppearanceData
+        originalPinsHidden = true
+      end
+    end
   end
 
   for name, player in pairs(players) do

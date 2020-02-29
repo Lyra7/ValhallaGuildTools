@@ -280,16 +280,6 @@ function VGT.TableSize(t)
   return c
 end
 
-function VGT.PrintAbout()
-  VGT.Log(VGT.LOG_LEVEL.SYSTEM, "installed version: %s", VGT.VERSION)
-end
-
-function VGT.PrintHelp()
-  VGT.Log(VGT.LOG_LEVEL.SYSTEM, "Command List:")
-  VGT.Log(VGT.LOG_LEVEL.SYSTEM, "/vgt about - version information")
-  VGT.Log(VGT.LOG_LEVEL.SYSTEM, "/vgt dungeons [timeframeInDays:7] - list of players that killed a dungeon boss within the timeframe")
-end
-
 local warned = false
 local warnedPlayers = {}
 local handleCoreMessageReceivedEvent = function(prefix, message, _, sender)

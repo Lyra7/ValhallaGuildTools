@@ -28,3 +28,4 @@ VGT-Douse.lua
 VGT-Map.lua
 VGT-Force.lua
 VGT-DungeonData.lua
+VGT-SlashCommand.lua
