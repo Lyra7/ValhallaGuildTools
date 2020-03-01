@@ -299,8 +299,10 @@ local handleCoreMessageReceivedEvent = function(prefix, message, _, sender)
       warnedPlayers[sender] = true
     end
   elseif (event == "VERSION") then
-    if (not warned and tonumber(VGT.VERSION) < tonumber(version)) then
-      VGT.Log(VGT.LOG_LEVEL.WARN, "there is a newer version of this addon")
+    local myVersion = tonumber(VGT.VERSION)
+    local theirVersion = tonumber(version)
+    if (not warned and myVersion < theirVersion) then
+      VGT.Log(VGT.LOG_LEVEL.WARN, "there is a newer version of this addon (%s < %s)", myVersion, theirVersion)
       warned = true
     end
   end
