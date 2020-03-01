@@ -1,5 +1,4 @@
 local MODULE_NAME = "VGT-Map"
-local FRAME = CreateFrame("Frame")
 
 local bufferSize = 0
 local bufferPins = {}
@@ -9,6 +8,7 @@ local zoneCache = {}
 local FRAME_TYPE = "Frame"
 local PLAYER = "player"
 local COMM_CHANNEL = "GUILD"
+local WHISPER_CHANNEL = "WHISPER"
 local COMM_PRIORITY = "NORMAL"
 local PERCENT = "%"
 local NEW_LINE = "\n"
@@ -19,9 +19,11 @@ local BACKGROUND = "BACKGROUND"
 local SCRIPT_ENTER = "OnEnter"
 local SCRIPT_LEAVE = "OnLeave"
 local PIN_TEXTURE = "Interface\\MINIMAP\\ObjectIcons.blp"
+local REQUEST_LOCATION_MESSAGE = "RL"
 
 local PIN_SIZE = 10
 
+local blizzardPins
 local originalPinsHidden = false
 local originalPartyAppearanceData
 local originalRaidAppearanceData
@@ -259,13 +261,15 @@ local worldPosition = function(decimals)
   return VGT.Round(x, decimals or 0), VGT.Round(y, decimals or 0), instanceMapId
 end
 
-local sendMyLocation = function()
-  if (VGT.OPTIONS.MAP.sendMyLocation) then
+local sendMyLocation = function(target)
+  if (IsInGuild() and VGT.OPTIONS.MAP.sendMyLocation) then
     local x, y, instanceMapId = worldPosition()
     local hp = UnitHealth(PLAYER) / UnitHealthMax(PLAYER)
     if (instanceMapId ~= nil and x ~= nil and y ~= nil and hp ~= nil) then
       local data = instanceMapId..DELIMITER..x..DELIMITER..y..DELIMITER..hp
-      if (IsInGuild()) then
+      if (target ~= nil) then
+        VGT.LIBS:SendCommMessage(MODULE_NAME, data, WHISPER_CHANNEL, target, COMM_PRIORITY)
+      else
         VGT.LIBS:SendCommMessage(MODULE_NAME, data, COMM_CHANNEL, nil, COMM_PRIORITY)
       end
     end
@@ -285,31 +289,35 @@ local updatePinColors = function(name, player)
   end
 end
 
-local updatePins = function()
-  if (C_PvP.IsPVPMap()) then
-    if (originalPinsHidden and originalPartyAppearanceData and originalRaidAppearanceData) then
-      for bpin in VGT.LIBS.HBDP.worldmapProvider:GetMap():EnumeratePinsByTemplate("GroupMembersPinTemplate") do
-        bpin.unitAppearanceData["raid"] = originalRaidAppearanceData
-        bpin.unitAppearanceData["party"] = originalPartyAppearanceData
-        originalPinsHidden = false
+local toggleBlizzardPins = function(show)
+  if (not blizzardPins) then
+    for bpin in VGT.LIBS.HBDP.worldmapProvider:GetMap():EnumeratePinsByTemplate("GroupMembersPinTemplate") do
+      blizzardPins = bpin;
+      if (not originalRaidAppearanceData) then
+        originalPartyAppearanceData = bpin.unitAppearanceData["raid"]
       end
+      if (not originalPartyAppearanceData) then
+        originalRaidAppearanceData = bpin.unitAppearanceData["party"]
+      end
+      originalPinsHidden = false
+    end
+  end
+  if (show) then
+    if (originalPinsHidden) then
+      blizzardPins.unitAppearanceData["raid"] = originalRaidAppearanceData
+      blizzardPins.unitAppearanceData["party"] = originalPartyAppearanceData
+      originalPinsHidden = false
     end
   else
     if (not originalPinsHidden) then
-      for bpin in VGT.LIBS.HBDP.worldmapProvider:GetMap():EnumeratePinsByTemplate("GroupMembersPinTemplate") do
-        if (not originalRaidAppearanceData) then
-          originalPartyAppearanceData = bpin.unitAppearanceData["raid"]
-        end
-        if (not originalPartyAppearanceData) then
-          originalRaidAppearanceData = bpin.unitAppearanceData["party"]
-        end
-        bpin.unitAppearanceData["raid"] = hiddenAppearanceData
-        bpin.unitAppearanceData["party"] = hiddenAppearanceData
-        originalPinsHidden = true
-      end
+      blizzardPins.unitAppearanceData["raid"] = hiddenAppearanceData
+      blizzardPins.unitAppearanceData["party"] = hiddenAppearanceData
+      originalPinsHidden = true
     end
   end
+end
 
+local updatePins = function()
   for name, player in pairs(players) do
     if (player.PendingLocationChange) then
       --VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, player.WorldmapPin)
@@ -420,10 +428,14 @@ local handleMapMessageReceivedEvent = function(prefix, message, distribution, se
     return
   end
 
-  local continentId, x, y, hp = parseMessage(message)
+  if (message == REQUEST_LOCATION_MESSAGE) then
+    sendMyLocation(sender);
+  else
+    local continentId, x, y, hp = parseMessage(message)
 
-  if (continentId ~= nil and x ~= nil and y ~= nil and not UnitIsUnit(sender, PLAYER) and not UnitInParty(sender)) then
-    addOrUpdatePlayer(sender, x, y, continentId, hp, true, getZoneFromGuild(sender))
+    if (continentId ~= nil and x ~= nil and y ~= nil and not UnitIsUnit(sender, PLAYER) and not UnitInParty(sender)) then
+      addOrUpdatePlayer(sender, x, y, continentId, hp, true, getZoneFromGuild(sender))
+    end
   end
 end
 
@@ -446,22 +458,21 @@ end
 
 local cleanUnusedPins = function()
   for name, player in pairs(players) do
-    local destroy = false
-
-    if (not UnitInParty(name) and not player.HasCommMessages and not UnitIsUnit(name, PLAYER)) then
-      destroyPlayer(name) -- remove non-party members that aren't sending comm messages
-    end
-
-    if (player.HasCommMessages and player.LastCommReceived and (GetTime() - player.LastCommReceived) > 180) then
-      destroyPlayer(name) -- remove pins that haven't had a new comm message in 3 minutes. (happens if a user disables reporting, or if the addon crashes)
+    if (not VGT.OPTIONS.MAP.enabled or -- remove all pins if the addon is disabled.
+      (not UnitInParty(name) and not player.HasCommMessages and not UnitIsUnit(name, PLAYER)) or -- remove non-party members that aren't sending comm messages
+      (player.HasCommMessages and player.LastCommReceived and (GetTime() - player.LastCommReceived) > 180)) then -- remove pins that haven't had a new comm message in 3 minutes. (happens if a user disables reporting, or if the addon crashes)
+      destroyPlayer(name)
+    elseif (VGT.OPTIONS.MAP.mode == "minimap") then -- remove the worldmap pin if the user changed to minimap only.
+      VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, player.WorldmapPin)
+    elseif (VGT.OPTIONS.MAP.mode == "map") then -- remove the minimap pin if the user changed to worldmap only.
+      VGT.LIBS.HBDP:RemoveMinimapIcon(MODULE_NAME, player.MinimapPin)
     end
   end
 end
 
-local initialized = false
 local lastUpdate = GetTime()
 local main = function()
-  if (initialized) then
+  if (VGT.OPTIONS.MAP.enabled) then
     local now = GetTime()
     local delay = 3
     if (UnitAffectingCombat(PLAYER)) then
@@ -475,11 +486,15 @@ local main = function()
     end
     updatePartyMembers()
     cleanUnusedPins()
+    toggleBlizzardPins(VGT.OPTIONS.MAP.mode == "minimap" or C_PvP.IsPVPMap())
     updatePins()
     if (now - lastUpdate >= delay) then
       sendMyLocation()
       lastUpdate = now
     end
+  else
+    cleanUnusedPins()
+    toggleBlizzardPins(true)
   end
 end
 
@@ -489,13 +504,15 @@ end
 
 function VGT.Map_Initialize()
   if (VGT.OPTIONS.MAP.enabled) then
-    if (not initialized) then
+    if (not VGT.MapInitialized) then
+      VGT.MapInitialized = true
       VGT.LIBS:RegisterComm(MODULE_NAME, handleMapMessageReceivedEvent)
-      initialized = true
+      VGT.LIBS:SendCommMessage(MODULE_NAME, REQUEST_LOCATION_MESSAGE, COMM_CHANNEL, nil, COMM_PRIORITY)
+      local FRAME = CreateFrame("Frame")
+      FRAME:RegisterEvent("GUILD_ROSTER_UPDATE")
+      FRAME:RegisterEvent("PLAYER_TARGET_CHANGED")
+      FRAME:SetScript("OnEvent", onEvent)
+      FRAME:SetScript("OnUpdate", main)
     end
   end
 end
-FRAME:RegisterEvent("GUILD_ROSTER_UPDATE")
-FRAME:RegisterEvent("PLAYER_TARGET_CHANGED")
-FRAME:SetScript("OnEvent", onEvent)
-FRAME:SetScript("OnUpdate", main)
