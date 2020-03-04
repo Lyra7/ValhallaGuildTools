@@ -15,7 +15,7 @@ function VGT.PrintPR(player)
       gp = tonumber(gp);
 
       if (ep and gp) then
-        VGT.Log(VGT.LOG_LEVEL.SYSTEM, "PR for "..player.." is "..string.format("%.2f", ep / gp));
+        VGT.Log(VGT.LOG_LEVEL.SYSTEM, "PR for %s is %.2f (%d ep / %d gp)", player, ep / gp, ep, gp);
       else
         VGT.Log(VGT.LOG_LEVEL.SYSTEM, "Could not read EP/GP data from guild roster.");
       end
@@ -24,6 +24,23 @@ function VGT.PrintPR(player)
   end
 
   VGT.Log(VGT.LOG_LEVEL.SYSTEM, "No guild member named "..player.." was found.");
+end
+
+function VGT.PrintUserCount()
+  VGT.EnumerateUsers(function(users)
+    local usersCount = 0;
+    local usingThisVersionCount = 0;
+
+    for key, value in pairs(users) do
+      usersCount = usersCount + 1;
+
+      if (value == VGT.VERSION) then
+        usingThisVersionCount = usingThisVersionCount + 1;
+      end
+    end
+
+    VGT.Log(VGT.LOG_LEVEL.SYSTEM, "%d players are using the addon, and %d are using the same version as you.", usersCount, usingThisVersionCount);
+  end);
 end
 
 function VGT.PrintAbout()
@@ -69,6 +86,8 @@ SlashCmdList["VGT"] = function(message)
     VGT.CheckForDouse()
   elseif (command == "pr") then
     VGT.PrintPR(arg1)
+  elseif (command == "users") then
+    VGT.PrintUserCount()
   else
     VGT.Log(VGT.LOG_LEVEL.ERROR, "invalid command - type `/vgt help` for a list of commands")
   end
