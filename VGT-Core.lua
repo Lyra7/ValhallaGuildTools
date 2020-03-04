@@ -7,6 +7,12 @@ VGT.LIBS.HBDP = LibStub("HereBeDragons-Pins-2.0")
 VGT.CORE_FRAME = CreateFrame("Frame")
 local MODULE_NAME = "VGT-Core"
 
+local REQUEST_VERSION_MESSAGE = "ReqV";
+local RESPOND_VERSION_MESSAGE = "ResV";
+local RESPOND_VERSION_MESSAGE_LENGTH = string.len(RESPOND_VERSION_MESSAGE);
+local EnumeratingUsers = false;
+local users = {};
+
 -- ############################################################
 -- ##### LOCAL FUNCTIONS ######################################
 -- ############################################################
@@ -280,6 +286,22 @@ function VGT.TableSize(t)
   return c
 end
 
+function VGT.EnumerateUsers(callback)
+  if (EnumeratingUsers) then
+    return;
+  end
+  EnumeratingUsers = true;
+
+  VGT.LIBS:SendCommMessage(MODULE_NAME, REQUEST_VERSION_MESSAGE, "GUILD");
+  VGT.Log(VGT.LOG_LEVEL.SYSTEM, "Requesting addon user info...");
+
+  C_Timer.After(5, function()
+    callback(users);
+    EnumeratingUsers = false;
+    users = {};
+  end);
+end
+
 local warned = false
 local warnedPlayers = {}
 local handleCoreMessageReceivedEvent = function(prefix, message, _, sender)
@@ -287,23 +309,29 @@ local handleCoreMessageReceivedEvent = function(prefix, message, _, sender)
     return
   end
 
-  local playerName = UnitName("player")
-  if (sender == playerName) then
-    return
-  end
-
-  local event, version = strsplit(":", message)
-  if (event == "SYNCHRONIZATION_REQUEST") then
-    if (not warnedPlayers[sender] and version ~= nil and tonumber(version) < tonumber(VGT.VERSION)) then
-      VGT.LIBS:SendCommMessage(MODULE_NAME, "VERSION:"..VGT.VERSION, "WHISPER", sender)
-      warnedPlayers[sender] = true
+  if (message == REQUEST_VERSION_MESSAGE) then
+    VGT.LIBS:SendCommMessage(MODULE_NAME, RESPOND_VERSION_MESSAGE..VGT.VERSION, "WHISPER", sender);
+  elseif (string.sub(message, 1, RESPOND_VERSION_MESSAGE_LENGTH) == RESPOND_VERSION_MESSAGE) then
+    users[sender] = string.sub(message, RESPOND_VERSION_MESSAGE_LENGTH + 1);
+  else
+    local playerName = UnitName("player")
+    if (sender == playerName) then
+      return
     end
-  elseif (event == "VERSION") then
-    local myVersion = tonumber(VGT.VERSION)
-    local theirVersion = tonumber(version)
-    if (not warned and myVersion < theirVersion) then
-      VGT.Log(VGT.LOG_LEVEL.WARN, "there is a newer version of this addon (%s < %s)", myVersion, theirVersion)
-      warned = true
+
+    local event, version = strsplit(":", message)
+    if (event == "SYNCHRONIZATION_REQUEST") then
+      if (not warnedPlayers[sender] and version ~= nil and tonumber(version) < tonumber(VGT.VERSION)) then
+        VGT.LIBS:SendCommMessage(MODULE_NAME, "VERSION:"..VGT.VERSION, "WHISPER", sender)
+        warnedPlayers[sender] = true
+      end
+    elseif (event == "VERSION") then
+      local myVersion = tonumber(VGT.VERSION)
+      local theirVersion = tonumber(version)
+      if (not warned and myVersion < theirVersion) then
+        VGT.Log(VGT.LOG_LEVEL.WARN, "there is a newer version of this addon (%s < %s)", myVersion, theirVersion)
+        warned = true
+      end
     end
   end
 end
@@ -353,28 +381,3 @@ VGT.CORE_FRAME:RegisterEvent("PLAYER_ENTERING_WORLD")
 VGT.CORE_FRAME:RegisterEvent("GUILD_ROSTER_UPDATE")
 VGT.CORE_FRAME:RegisterEvent("PLAYER_LOGOUT")
 VGT.CORE_FRAME:SetScript("OnEvent", onEvent)
-
--- ############################################################
--- ##### SLASH COMMANDS #######################################
--- ############################################################
-
---SLASH_VGT1 = "/vgt"
---SlashCmdList["VGT"] = function(message)
---   local command, arg1 = strsplit(" ", message)
---   if (command == "" or command == "help") then
---     VGT.PrintHelp()
---     return
---   end
---
---   if (command == "about") then
---     VGT.PrintAbout()
---   elseif (command == "loglevel") then
---     VGT.SetLogLevel(arg1)
---   elseif (command == "dungeons") then
---     VGT.PrintDungeonList(tonumber(arg1), false)
---   elseif (command == "douse") then
---     VGT.CheckForDouse()
---   else
---     VGT.Log(VGT.LOG_LEVEL.ERROR, "invalid command - type `/vgt help` for a list of commands")
---   end
---end
