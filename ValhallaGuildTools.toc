@@ -2,7 +2,7 @@
 ## X-Min-Interface: 11303
 ## Title: ValhallaGuildTools
 ## Notes: Valhalla Guild Tools
-## SavedVariables: VGT_OPTIONS
+## SavedVariables: VGT_OPTIONS, VGT_PROFESSIONS
 ## SavedVariablesPerCharacter: VGT_EPDB, VGT_EPDB2
 ## LoadOnDemand: 0
 ## DefaultState: enabled
@@ -27,5 +27,6 @@ VGT-EP.lua
 VGT-Douse.lua
 VGT-Map.lua
 VGT-Force.lua
+VGT-Profession.lua
 VGT-DungeonData.lua
 VGT-SlashCommand.lua
