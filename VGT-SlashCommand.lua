@@ -26,20 +26,70 @@ function VGT.PrintPR(player)
   VGT.Log(VGT.LOG_LEVEL.SYSTEM, "No guild member named "..player.." was found.");
 end
 
-function VGT.PrintUserCount()
+function VGT.PrintUserCount(by)
   VGT.EnumerateUsers(function(users)
-    local usersCount = 0;
-    local usingThisVersionCount = 0;
+    if (by == "version") then
+      local versions = {};
 
-    for key, value in pairs(users) do
-      usersCount = usersCount + 1;
-
-      if (value == VGT.VERSION) then
-        usingThisVersionCount = usingThisVersionCount + 1;
+      for player, version in pairs(users) do
+        local versionPlayers = versions[version];
+        if (not versionPlayers) then
+          versionPlayers = {};
+          versions[version] = versionPlayers;
+        end
+        versionPlayers[#versionPlayers + 1] = player;
       end
-    end
 
-    VGT.Log(VGT.LOG_LEVEL.SYSTEM, "%d players are using the addon, and %d are using the same version as you.", usersCount, usingThisVersionCount);
+      table.sort(versions);
+
+      for version, versionUsers in pairs(versions) do
+        table.sort(versionUsers);
+
+        local report = string.format("Version %s: ", version);
+
+        for i, player in ipairs(versionUsers) do
+          if (i > 1) then
+            report = string.format("%s, %s", report, player);
+          else
+            report = report..player;
+          end
+        end
+        
+        VGT.Log(VGT.LOG_LEVEL.SYSTEM, report);
+      end
+    elseif (by == "name") then
+      local players = {};
+
+      for player, _ in pairs(users) do
+        players[#players + 1] = player;
+      end
+
+      table.sort(players);
+      local report = "Players using VGT: ";
+      local separator = false;
+      
+      for i, player in ipairs(players) do
+        if (i > 1) then
+          report = string.format("%s, %s", report, player);
+        else
+          report = report..player;
+        end
+      end
+
+      VGT.Log(VGT.LOG_LEVEL.SYSTEM, report);
+    else
+      local usersCount = 0;
+      local usingThisVersionCount = 0;
+
+      for key, value in pairs(users) do
+        usersCount = usersCount + 1;
+
+        if (value == VGT.VERSION) then
+          usingThisVersionCount = usingThisVersionCount + 1;
+        end
+      end
+      VGT.Log(VGT.LOG_LEVEL.SYSTEM, "%d players are using the addon, and %d are using the same version as you.", usersCount, usingThisVersionCount);
+    end
   end);
 end
 
@@ -87,7 +137,11 @@ SlashCmdList["VGT"] = function(message)
   elseif (command == "pr") then
     VGT.PrintPR(arg1)
   elseif (command == "users") then
-    VGT.PrintUserCount()
+    if (arg1 == "by") then
+      VGT.PrintUserCount(arg2)
+    else
+      VGT.PrintUserCount()
+    end
   else
     VGT.Log(VGT.LOG_LEVEL.ERROR, "invalid command - type `/vgt help` for a list of commands")
   end
