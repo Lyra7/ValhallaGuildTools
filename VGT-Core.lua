@@ -286,7 +286,7 @@ function VGT.TableSize(t)
   return c
 end
 
-function VGT.EnumerateUsers(callback)
+function VGT.EnumerateUsers(callback, wait)
   if (EnumeratingUsers) then
     return;
   end
@@ -295,7 +295,11 @@ function VGT.EnumerateUsers(callback)
   VGT.LIBS:SendCommMessage(MODULE_NAME, REQUEST_VERSION_MESSAGE, "GUILD");
   VGT.Log(VGT.LOG_LEVEL.SYSTEM, "Requesting addon user info...");
 
-  C_Timer.After(5, function()
+  if (not wait) then
+    wait = 3;
+  end
+
+  C_Timer.After(wait, function()
     callback(users);
     EnumeratingUsers = false;
     users = {};
