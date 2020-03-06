@@ -66,15 +66,16 @@ local onMessage = function(prefix, message, distribution, sender)
       end
     end
   else
-    local player, timestamp, recipe, cooldown = strsplit(DELIMITER, message)
+    local player, timestampStr, recipe, cooldown = strsplit(DELIMITER, message)
+    local timestamp = tonumber(timestampStr)
     if (player and timestamp and recipe and cooldown) then
       local savedTimestamp = (getPlayerTimestamp(player) or 0)
       if (timestamp and timestamp > savedTimestamp) then
         if (not VGT_PROFESSIONS[player]) then
           VGT_PROFESSIONS[player] = {}
         end
-        VGT_PROFESSIONS[player].timestamp = timestamp
-        VGT_PROFESSIONS[player][recipe] = cooldown
+        VGT_PROFESSIONS[player].timestamp = tonumber(timestamp)
+        VGT_PROFESSIONS[player][recipe] = tonumber(cooldown)
       end
     end
   end
