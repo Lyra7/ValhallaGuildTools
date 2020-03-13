@@ -115,8 +115,8 @@ function PushDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey
   self.currentGuidKey = (self.currentGuidKey or currentGuidKey)
   if (self.sinceLastUpdate >= 0.1) then
     -- Check if we should be sending data
-    if (synchronize and VGT.CommAvailability() >= 50 and not VGT.IsInRaid()) then
-      local guildName = VGT.GetMyGuildName()
+    local guildName = VGT.GetMyGuildName()
+    if (synchronize == true and guildName ~= nil and dbSnapshot[guildName] ~= nil and VGT.CommAvailability() >= 50 and not VGT.IsInRaid()) then
       -- Check if guid data has been looped
       if (self.currentGuidKey == self.firstGuidKey) then
         -- Get the next player data
