@@ -13,15 +13,15 @@ local onEvent = function(_, event)
     if (VGT_PROFESSIONS == nil) then
       VGT_PROFESSIONS = {}
     end
-    VGT.LIBS:SendCommMessage(MODULE_NAME, MODULE_NAME, "GUILD")
+    --VGT.LIBS:SendCommMessage(MODULE_NAME, MODULE_NAME, "GUILD")
   end
 
   if (event == "TRADE_SKILL_SHOW" or event == "TRADE_SKILL_UPDATE") then
     local player = GetUnitName("player")
     VGT_PROFESSIONS[player] = {}
     VGT_PROFESSIONS[player].timestamp = GetServerTime()
-    for i = 0, GetNumTradeSkills() do
-      local recipe = GetTradeSkillInfo(i);
+    for i = 0, GetNumTradeSkills() do --GetNumCrafts() for enchanting
+      local recipe = GetTradeSkillInfo(i) --GetCraftInfo(i) for enchanting
       if (recipe == "Transmute: Arcanite") then
         VGT_PROFESSIONS[player][recipe] = floor((GetTradeSkillCooldown(i) or 0))
       end
@@ -33,9 +33,9 @@ end
 local getPlayerTimestamp = function(player)
   local playerData = VGT_PROFESSIONS[player]
   if (playerData) then
-    for k, v in pairs(playerData) do
-      if (k == "timestamp") then
-        return v
+    for recipe, value in pairs(playerData) do
+      if (recipe == "timestamp") then
+        return value
       end
     end
   end
@@ -51,14 +51,14 @@ local onMessage = function(prefix, message, distribution, sender)
   end
 
   if (message == MODULE_NAME) then
-    if (skillsLoaded) then
+    if (VGT_PROFESSIONS ~= nil and not VGT.IsInRaid()) then
       for player, playerData in pairs(VGT_PROFESSIONS) do
         if (playerData) then
           local timestamp = getPlayerTimestamp(player)
           if (timestamp) then
-            for k, v in pairs(playerData) do
-              if (k ~= "timestamp") then
-                VGT.LIBS:SendCommMessage(MODULE_NAME, player..DELIMITER..timestamp..DELIMITER..k..DELIMITER..v, "WHISPER", sender, "BULK")
+            for recipe, value in pairs(playerData) do
+              if (recipe ~= "timestamp") then
+                --VGT.LIBS:SendCommMessage(MODULE_NAME, player..DELIMITER..timestamp..DELIMITER..recipe..DELIMITER..value, "GUILD", nil, "BULK")
               end
             end
           end
@@ -68,7 +68,7 @@ local onMessage = function(prefix, message, distribution, sender)
   else
     local player, timestampStr, recipe, cooldown = strsplit(DELIMITER, message)
     local timestamp = tonumber(timestampStr)
-    if (player and timestamp and recipe and cooldown) then
+    if (player and timestamp and recipe) then
       local savedTimestamp = (getPlayerTimestamp(player) or 0)
       if (timestamp and timestamp > savedTimestamp) then
         if (not VGT_PROFESSIONS[player]) then

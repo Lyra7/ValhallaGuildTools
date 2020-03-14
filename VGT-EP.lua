@@ -265,7 +265,7 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
               VGT_EPDB2[guildName][players[i]] = {}
             end
             if (VGT_EPDB2[guildName][players[i]][creatureUID] == nil) then
-              VGT.Log(VGT.LOG_LEVEL.DEBUG, "saving record %s from %s.", message, sender)
+              VGT.Log(VGT.LOG_LEVEL.DEBUG, "saving record %s:%s:%s from %s.", guildName, players[i], creatureUID, sender)
               VGT_EPDB2[guildName][players[i]][creatureUID] = {timestamp, VGT.dungeons[dungeonName], VGT.bosses[bossName][1]}
             end
           end
