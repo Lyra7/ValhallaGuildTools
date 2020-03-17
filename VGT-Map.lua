@@ -28,12 +28,12 @@ local originalPinsHidden = false
 local originalPartyAppearanceData
 local originalRaidAppearanceData
 local hiddenAppearanceData = {
-		size = 0,
-		sublevel = UNIT_POSITION_FRAME_DEFAULT_SUBLEVEL,
-		texture = UNIT_POSITION_FRAME_DEFAULT_TEXTURE,
-		shouldShow = false,
-		useClassColor = false,
-		showRotation = false
+  size = 0,
+  sublevel = UNIT_POSITION_FRAME_DEFAULT_SUBLEVEL,
+  texture = UNIT_POSITION_FRAME_DEFAULT_TEXTURE,
+  shouldShow = false,
+  useClassColor = false,
+  showRotation = false
 }
 
 -- ############################################################
@@ -60,7 +60,7 @@ local formatTooltip = function(player, distance)
   end
 
   text = text..formatPlayerTooltip(player)
-  
+
   for _, otherPlayer in pairs(players) do
     if (otherPlayer ~= player and otherPlayer.X ~= nil and otherPlayer.Y ~= nil and player.X ~= nil and player.Y ~= nil and (abs(player.X - otherPlayer.X) + abs(player.Y - otherPlayer.Y) < distance)) then
       text = text..NEW_LINE..formatPlayerTooltip(otherPlayer)
@@ -235,7 +235,7 @@ local addOrUpdatePlayer = function(name, x, y, continentId, hp, fromCommMessage,
   player.HP = hp
   player.Zone = zone
   player.PendingLocationChange = (x ~= player.X or y ~= player.Y or continentId ~= player.ContinentId)
-  player.X = x 
+  player.X = x
   player.Y = y
   player.ContinentId = continentId
 end
@@ -360,7 +360,7 @@ local addOrUpdatePartyMember = function(unit)
         zone = mapInfo.name
       end
     end
-    
+
     addOrUpdatePlayer(name, x, y, continentOrInstanceId, UnitHealth(unit) / UnitHealthMax(unit), false, zone)
   end
 end
@@ -460,7 +460,7 @@ local cleanUnusedPins = function()
   for name, player in pairs(players) do
     if (not VGT.OPTIONS.MAP.enabled or -- remove all pins if the addon is disabled.
       (not UnitInParty(name) and not player.HasCommMessages and not UnitIsUnit(name, PLAYER)) or -- remove non-party members that aren't sending comm messages
-      (player.HasCommMessages and player.LastCommReceived and (GetTime() - player.LastCommReceived) > 180)) then -- remove pins that haven't had a new comm message in 3 minutes. (happens if a user disables reporting, or if the addon crashes)
+    (player.HasCommMessages and player.LastCommReceived and (GetTime() - player.LastCommReceived) > 180)) then -- remove pins that haven't had a new comm message in 3 minutes. (happens if a user disables reporting, or if the addon crashes)
       destroyPlayer(name)
     elseif (VGT.OPTIONS.MAP.mode == "minimap") then -- remove the worldmap pin if the user changed to minimap only.
       VGT.LIBS.HBDP:RemoveWorldMapIcon(MODULE_NAME, player.WorldmapPin)
@@ -507,12 +507,14 @@ function VGT.Map_Initialize()
     if (not VGT.MapInitialized) then
       VGT.MapInitialized = true
       VGT.LIBS:RegisterComm(MODULE_NAME, handleMapMessageReceivedEvent)
-      VGT.LIBS:SendCommMessage(MODULE_NAME, REQUEST_LOCATION_MESSAGE, COMM_CHANNEL, nil, COMM_PRIORITY)
-      local FRAME = CreateFrame("Frame")
-      FRAME:RegisterEvent("GUILD_ROSTER_UPDATE")
-      FRAME:RegisterEvent("PLAYER_TARGET_CHANGED")
-      FRAME:SetScript("OnEvent", onEvent)
-      FRAME:SetScript("OnUpdate", main)
+      if (IsInGuild()) then
+        VGT.LIBS:SendCommMessage(MODULE_NAME, REQUEST_LOCATION_MESSAGE, COMM_CHANNEL, nil, COMM_PRIORITY)
+        local FRAME = CreateFrame("Frame")
+        FRAME:RegisterEvent("GUILD_ROSTER_UPDATE")
+        FRAME:RegisterEvent("PLAYER_TARGET_CHANGED")
+        FRAME:SetScript("OnEvent", onEvent)
+        FRAME:SetScript("OnUpdate", main)
+      end
     end
   end
 end
