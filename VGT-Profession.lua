@@ -13,7 +13,9 @@ local onEvent = function(_, event)
     if (VGT_PROFESSIONS == nil) then
       VGT_PROFESSIONS = {}
     end
-    --VGT.LIBS:SendCommMessage(MODULE_NAME, MODULE_NAME, "GUILD")
+    if (IsInGuild()) then
+      --VGT.LIBS:SendCommMessage(MODULE_NAME, MODULE_NAME, "GUILD")
+    end
   end
 
   if (event == "TRADE_SKILL_SHOW" or event == "TRADE_SKILL_UPDATE") then
@@ -58,7 +60,9 @@ local onMessage = function(prefix, message, distribution, sender)
           if (timestamp) then
             for recipe, value in pairs(playerData) do
               if (recipe ~= "timestamp") then
-                --VGT.LIBS:SendCommMessage(MODULE_NAME, player..DELIMITER..timestamp..DELIMITER..recipe..DELIMITER..value, "GUILD", nil, "BULK")
+                if (IsInGuild()) then
+                  --VGT.LIBS:SendCommMessage(MODULE_NAME, player..DELIMITER..timestamp..DELIMITER..recipe..DELIMITER..value, "GUILD", nil, "BULK")
+                end
               end
             end
           end

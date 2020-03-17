@@ -292,7 +292,9 @@ function VGT.EnumerateUsers(callback, wait)
   end
   EnumeratingUsers = true;
 
-  VGT.LIBS:SendCommMessage(MODULE_NAME, REQUEST_VERSION_MESSAGE, "GUILD");
+  if (IsInGuild()) then
+    VGT.LIBS:SendCommMessage(MODULE_NAME, REQUEST_VERSION_MESSAGE, "GUILD");
+  end
   VGT.Log(VGT.LOG_LEVEL.SYSTEM, "Requesting addon user info...");
 
   if (not wait) then
@@ -360,12 +362,15 @@ local function onEvent(_, event)
         handleInstanceChangeEvent(event)
         if (not entered) then
           GuildRoster()
-          VGT.LIBS:SendCommMessage(MODULE_NAME, "SYNCHRONIZATION_REQUEST:"..VGT.VERSION, "GUILD")
+          if (IsInGuild()) then
+            VGT.LIBS:SendCommMessage(MODULE_NAME, "SYNCHRONIZATION_REQUEST:"..VGT.VERSION, "GUILD")
+          end
           VGT.Log(VGT.LOG_LEVEL.TRACE, "initialized with version %s", VGT.VERSION)
           entered = true
         end
       end
       if (not rostered and event == "GUILD_ROSTER_UPDATE") then
+
         if (IsInGuild()) then
           VGT.EP_Initialize()
           rostered = true

@@ -270,7 +270,9 @@ local sendMyLocation = function(target)
       if (target ~= nil) then
         VGT.LIBS:SendCommMessage(MODULE_NAME, data, WHISPER_CHANNEL, target, COMM_PRIORITY)
       else
-        VGT.LIBS:SendCommMessage(MODULE_NAME, data, COMM_CHANNEL, nil, COMM_PRIORITY)
+        if (IsInGuild()) then
+          VGT.LIBS:SendCommMessage(MODULE_NAME, data, COMM_CHANNEL, nil, COMM_PRIORITY)
+        end
       end
     end
   end
@@ -509,12 +511,12 @@ function VGT.Map_Initialize()
       VGT.LIBS:RegisterComm(MODULE_NAME, handleMapMessageReceivedEvent)
       if (IsInGuild()) then
         VGT.LIBS:SendCommMessage(MODULE_NAME, REQUEST_LOCATION_MESSAGE, COMM_CHANNEL, nil, COMM_PRIORITY)
-        local FRAME = CreateFrame("Frame")
-        FRAME:RegisterEvent("GUILD_ROSTER_UPDATE")
-        FRAME:RegisterEvent("PLAYER_TARGET_CHANGED")
-        FRAME:SetScript("OnEvent", onEvent)
-        FRAME:SetScript("OnUpdate", main)
       end
+      local FRAME = CreateFrame("Frame")
+      FRAME:RegisterEvent("GUILD_ROSTER_UPDATE")
+      FRAME:RegisterEvent("PLAYER_TARGET_CHANGED")
+      FRAME:SetScript("OnEvent", onEvent)
+      FRAME:SetScript("OnUpdate", main)
     end
   end
 end

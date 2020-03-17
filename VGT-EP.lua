@@ -167,7 +167,9 @@ function PushDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey
           local value = format("%s:%s:%s", timestamp, dungeonName, bossName)
           local message = format("%s;%s", key, value)
           VGT.Log(VGT.LOG_LEVEL.TRACE, "sending %s to GUILD for %s:SYNCHRONIZATION_REQUEST.", message, MODULE_NAME)
-          VGT.LIBS:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
+          if (IsInGuild()) then
+            VGT.LIBS:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
+          end
         end
       else
         -- Get the next player data
@@ -212,7 +214,9 @@ local handleUnitDeath = function(creatureUID, dungeonName, bossName)
       local value = format("%s:%s:%s", timestamp, dungeonName, bossName)
       local message = format("%s;%s", key, value)
       VGT.Log(VGT.LOG_LEVEL.DEBUG, "saving %s and sending to guild.", message)
-      VGT.LIBS:SendCommMessage(MODULE_NAME, message, "GUILD")
+      if (IsInGuild()) then
+        VGT.LIBS:SendCommMessage(MODULE_NAME, message, "GUILD")
+      end
     else
       VGT.Log(VGT.LOG_LEVEL.DEBUG, "skipping boss kill event because you are not in a group with any guild members of %s", guildName)
     end
@@ -501,7 +505,9 @@ VGT.EP_Initialize = function()
       CleanDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey) CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey) end)
       PushDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey) PushDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey) end)
       VGT.LIBS:RegisterComm(MODULE_NAME, handleEPMessageReceivedEvent)
-      VGT.LIBS:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST:"..VGT.Count(VGT_EPDB2[VGT.GetMyGuildName()]), "GUILD")
+      if (IsInGuild()) then
+        VGT.LIBS:SendCommMessage(MODULE_NAME, MODULE_NAME..":SYNCHRONIZATION_REQUEST:"..VGT.Count(VGT_EPDB2[VGT.GetMyGuildName()]), "GUILD")
+      end
       initialized = true
     end
   end
