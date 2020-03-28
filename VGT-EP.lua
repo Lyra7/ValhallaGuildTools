@@ -91,11 +91,16 @@ end
 
 function CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey)
   local guildName = VGT.GetMyGuildName()
+  if (guildName == nil or VGT_EPDB2[guildName] == nil or VGT.IsInRaid() or withinDays(VGT_DB_TIMESTAMP, 1)) then
+    -- Stop the loop
+    CleanDatabase:SetScript("OnUpdate", nil)
+    return nil
+  end
+
   self.firstPlayerKey = (self.firstPlayerKey or firstPlayerKey)
   self.currentPlayerKey = (self.currentPlayerKey or next(VGT_EPDB2[guildName], self.currentPlayerKey))
   self.currentGuidKey = (self.currentGuidKey or currentGuidKey)
-
-  if (withinDays(VGT_DB_TIMESTAMP, 1) or guildName == nil or VGT.IsInRaid() or self.firstPlayerKey == self.currentPlayerKey) then
+  if (self.firstPlayerKey == self.currentPlayerKey) then
     -- Stop the loop
     CleanDatabase:SetScript("OnUpdate", nil)
     return nil
@@ -334,6 +339,13 @@ local playerStatistics = function(player)
 end
 
 VGT.rewardEP = function(test)
+  local guildTable = {}
+  for i = 1, GetNumGuildMembers() do
+    local fullname = GetGuildRosterInfo(i)
+    local name = strsplit("-", fullname)
+    guildTable[name] = true
+  end
+
   local currentTime = GetServerTime()
   local players = {}
   for player, playerData in pairs(VGT_EPDB2[VGT.GetMyGuildName()]) do
@@ -351,9 +363,13 @@ VGT.rewardEP = function(test)
         end
       end
     end
-    if (oldestGuid ~= nil) then
+    if (oldestGuid ~= nil and guildTable[player]) then
       local guidData = playerData[oldestGuid]
       if (not test) then
+        _, _, guildRankIndex = GetGuildInfo("player");
+        if (guildRankIndex == 0) then
+          CEPGP_addEP(player, 10, "dungeon ep")
+        end
         playerData[oldestGuid] = {guidData[1], guidData[2], guidData[3], true}
       end
       players[player] = true

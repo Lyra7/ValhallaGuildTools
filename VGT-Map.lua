@@ -3,7 +3,6 @@ local MODULE_NAME = "VGT-Map"
 local bufferSize = 0
 local bufferPins = {}
 local players = {}
-local zoneCache = {}
 
 local FRAME_TYPE = "Frame"
 local PLAYER = "player"
@@ -52,10 +51,33 @@ local formatPlayerTooltip = function(player)
   end
 end
 
+local getGuildNumber = function(name)
+  local numTotalMembers = GetNumGuildMembers();
+  for i = 1, numTotalMembers do
+    local fullname = select(1, GetGuildRosterInfo(i));
+    if (fullname ~= nil) then
+      local memberName = strsplit(NAME_SEPERATOR, fullname);
+      if (name == memberName) then
+        return i;
+      end
+    end
+  end
+  return nil;
+end
+
 local formatTooltip = function(player, distance)
   local text = ""
 
-  if (player.Zone ~= nil) then
+  if (not player.NotInGuild and player.GuildNumber == nil) then
+    player.GuildNumber = getGuildNumber(player.Name);
+    if (player.GuildNumber == nil) then
+      player.NotInGuild = true;
+    end
+  end
+
+  if (player.GuildNumber ~= nil) then
+    text = select(6, GetGuildRosterInfo(player.GuildNumber))..NEW_LINE
+  elseif (player.Zone ~= nil) then
     text = player.Zone..NEW_LINE
   end
 
@@ -192,21 +214,6 @@ local isDungeonCoords = function(x, y, instanceMapId, decimals)
   return false
 end
 
-local getInGuild = function(name, fromCommMessage)
-  if (fromCommMessage) then return true end
-  local numTotalMembers = GetNumGuildMembers()
-  for i = 1, numTotalMembers do
-    local fullname, _, _, level, _, zone, _, _, online, status, class = GetGuildRosterInfo(i)
-    if (fullname ~= nil) then
-      local memberName = strsplit(NAME_SEPERATOR, fullname)
-      if (name == memberName) then
-        return true
-      end
-    end
-  end
-  return false
-end
-
 local addOrUpdatePlayer = function(name, x, y, continentId, hp, fromCommMessage, zone)
   local player = players[name]
   if (not player) then
@@ -218,7 +225,6 @@ local addOrUpdatePlayer = function(name, x, y, continentId, hp, fromCommMessage,
     player.ContinentId = nil
     player.Class = getClass(name)
     player.Name = name
-    player.InGuild = getInGuild(name, fromCommMessage)
     player.HasCommMessages = false
     player.LastCommReceived = 0
     if (UnitName("target") == name) then
@@ -386,40 +392,6 @@ local updatePartyMembers = function()
   end
 end
 
-local updateFromGuildRoster = function()
-  local numTotalMembers = GetNumGuildMembers()
-  for i = 1, numTotalMembers do
-    local fullname, _, _, level, _, zone, _, _, online, status, class = GetGuildRosterInfo(i)
-    if (fullname ~= nil) then
-      local name = strsplit(NAME_SEPERATOR, fullname)
-      local player = players[name]
-
-      if (player ~= nil) then
-        if (not online) then
-          zoneCache[name] = nil
-          destroyPlayer(name)
-        else
-          zoneCache[name] = zone
-          player.InGuild = true
-          player.Zone = zone
-          player.Class = class
-        end
-      end
-    end
-  end
-end
-
-local getZoneFromGuild = function(name)
-  local zone = zoneCache[name]
-
-  if not zone then
-    updateFromGuildRoster()
-    zone = zoneCache[name]
-  end
-
-  return zone
-end
-
 local parseMessage = function(message)
   local continentIdString, xString, yString, hpString = strsplit(DELIMITER, message)
   return tonumber(continentIdString), tonumber(xString), tonumber(yString), tonumber(hpString)
@@ -436,14 +408,16 @@ local handleMapMessageReceivedEvent = function(prefix, message, distribution, se
     local continentId, x, y, hp = parseMessage(message)
 
     if (continentId ~= nil and x ~= nil and y ~= nil and not UnitIsUnit(sender, PLAYER) and not UnitInParty(sender)) then
-      addOrUpdatePlayer(sender, x, y, continentId, hp, true, getZoneFromGuild(sender))
+      addOrUpdatePlayer(sender, x, y, continentId, hp, true)
     end
   end
 end
 
 local onEvent = function(_, event)
   if (event == "GUILD_ROSTER_UPDATE") then
-    updateFromGuildRoster()
+    for name, player in pairs(players) do
+      player.GuildNumber = nil;
+    end
   elseif (event == "PLAYER_TARGET_CHANGED") then
     local targetName = UnitName("target"); -- UnitIsUnit does not work for non-grouped units.
     for name, player in pairs(players) do
@@ -486,10 +460,12 @@ local main = function()
     if (UnitIsAFK(PLAYER)) then
       delay = 120
     end
+
     updatePartyMembers()
     cleanUnusedPins()
     toggleBlizzardPins(VGT.OPTIONS.MAP.mode == "minimap" or C_PvP.IsPVPMap())
     updatePins()
+
     if (now - lastUpdate >= delay) then
       sendMyLocation()
       lastUpdate = now
