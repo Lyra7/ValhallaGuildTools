@@ -89,6 +89,21 @@ local cleanRecord = function(guildName)
   end
 end
 
+--TODO could be faster with cache
+local getGuildOnline = function(name)
+  local numTotalMembers = GetNumGuildMembers();
+  for i = 1, numTotalMembers do
+    local fullname, _, _, _, _, _, _, _, online = GetGuildRosterInfo(i);
+    if (fullname ~= nil) then
+      local memberName = strsplit("-", fullname);
+      if (name == memberName) then
+        return online;
+      end
+    end
+  end
+  return nil;
+end
+
 function CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey)
   local guildName = VGT.GetMyGuildName()
   if (guildName == nil or VGT_EPDB2[guildName] == nil or VGT.IsInRaid() or withinDays(VGT_DB_TIMESTAMP, 1)) then
@@ -136,13 +151,15 @@ end
 -- Send a snapshot of the EPDB
 function PushDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey)
   self.sinceLastUpdate = (self.sinceLastUpdate or 0) + sinceLastUpdate
-  if (synchronize and VGT.CommAvailability() > 50 and self.sinceLastUpdate >= 0.05) then
+  if (synchronize and VGT.CommAvailability() > 50 and self.sinceLastUpdate >= 0.05 and getGuildOnline("Valhallax")) then
     local guildName = VGT.GetMyGuildName()
     if (not dbSnapshot[guildName]) then
       return
     end
+
+    --self.firstPlayerKey = (self.firstPlayerKey or firstPlayerKey)
     self.firstPlayerKey = (self.firstPlayerKey or firstPlayerKey)
-    self.currentPlayerKey = (self.currentPlayerKey or next(dbSnapshot[guildName], self.currentPlayerKey))
+    self.currentPlayerKey = UnitName("player")
     self.currentGuidKey = (self.currentGuidKey or currentGuidKey)
 
     if (guildName == nil or VGT.IsInRaid() or self.firstPlayerKey == self.currentPlayerKey) then
@@ -164,6 +181,7 @@ function PushDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey
       end
       -- Check if guid exists
       if (guidData ~= nil) then
+
         local timestamp = guidData[1]
         -- Check if data is valid
         if (validateRecord(guildName, timestamp, VGT.dungeons[guidData[2]][1], VGT.bosses[guidData[3]], nil)) then
@@ -253,10 +271,10 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
   local event = strsplit(":", message)
   if (distribution == "WHISPER") then
     local key, value = strsplit(";", message)
-    local _, creatureUID, guildName, groupedGuildiesStr = strsplit(":", key)
+    local creatureUID, guildName, groupedGuildiesStr = strsplit(":", key)
     local timestamp, dungeonId, bossId = strsplit(":", value)
-    local dungeonName = VGT.dungeons[dungeonId][1]
-    local bossName = VGT.bosses[bossId]
+    local dungeonName = VGT.dungeons[tonumber(dungeonId)][1]
+    local bossName = VGT.bosses[tonumber(bossId)]
     if (validateRecord(guildName, timestamp, dungeonName, bossName, sender)) then
       if (VGT_EPDB2 == nil) then
         VGT_EPDB2 = {}
@@ -273,6 +291,8 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
           if (VGT_EPDB2[guildName][players[i]][creatureUID] == nil) then
             VGT.Log(VGT.LOG_LEVEL.DEBUG, "saving record %s:%s:%s from %s.", guildName, players[i], creatureUID, sender)
             VGT_EPDB2[guildName][players[i]][creatureUID] = {timestamp, VGT.dungeons[dungeonName], VGT.bosses[bossName][1]}
+          else
+            VGT.Log(VGT.LOG_LEVEL.TRACE, "record %s:%s:%s from %s already exists.", guildName, players[i], creatureUID, sender)
           end
         end
       end
