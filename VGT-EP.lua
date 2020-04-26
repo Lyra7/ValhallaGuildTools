@@ -151,7 +151,7 @@ end
 -- Send a snapshot of the EPDB
 function PushDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey)
   self.sinceLastUpdate = (self.sinceLastUpdate or 0) + sinceLastUpdate
-  if (synchronize and VGT.CommAvailability() > 50 and self.sinceLastUpdate >= 0.05 and getGuildOnline("Valhallax")) then
+  if (synchronize and VGT.CommAvailability() > 50 and self.sinceLastUpdate >= 0.05 and IsInGuild() and getGuildOnline("Valhallax")) then
     local guildName = VGT.GetMyGuildName()
     if (not dbSnapshot[guildName]) then
       return
@@ -232,12 +232,12 @@ local handleUnitDeath = function(creatureUID, dungeonName, bossName)
         end
       end
 
-      local key = format("%s:%s:%s:%s", MODULE_NAME, creatureUID, guildName, groupedGuildiesStr)
-      local value = format("%s:%s:%s", timestamp, dungeonName, bossName)
+      local key = format("%s:%s:%s", creatureUID, guildName, groupedGuildiesStr)
+      local value = format("%s:%s:%s", timestamp, VGT.dungeons[dungeonName], VGT.bosses[bossName][1])
       local message = format("%s;%s", key, value)
       VGT.Log(VGT.LOG_LEVEL.DEBUG, "saving %s and sending to guild.", message)
-      if (IsInGuild()) then
-        VGT.LIBS:SendCommMessage(MODULE_NAME, message, "GUILD")
+      if (IsInGuild() and getGuildOnline("Valhallax")) then
+        VGT.LIBS:SendCommMessage(MODULE_NAME, message, "WHISPER", "Valhallax")
       end
     else
       VGT.Log(VGT.LOG_LEVEL.DEBUG, "skipping boss kill event because you are not in a group with any guild members of %s", guildName)
