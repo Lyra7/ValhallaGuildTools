@@ -611,7 +611,6 @@ VGT.EP_Initialize = function()
       if (UnitName("player") ~= "Valhallax") then
         dbSnapshot = deepcopy(VGT_EPDB2)
         synchronize = true
-        print("beep beep sync")
       end
       VGT.LIBS:RegisterComm(MODULE_NAME, handleEPMessageReceivedEvent)
       initialized = true
