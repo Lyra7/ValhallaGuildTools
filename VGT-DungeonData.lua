@@ -15,16 +15,27 @@ VGT.raids[469] = {"Blackwing Lair", - 1228.4, - 7524.7, 0}
 VGT.raids["Zul'Gurub"] = 309
 VGT.raids[309] = {"Zul'Gurub", - 1206.9, - 11916.2, 0}
 VGT.bosses["High Priest Venoxis"] = {14507, 309}
+VGT.bosses[14507] = "High Priest Venoxis"
 VGT.bosses["High Priestess Jeklik"] = {14517, 309}
+VGT.bosses[14517] = "High Priestess Jeklik"
 VGT.bosses["High Priestess Mar'li"] = {14510, 309}
+VGT.bosses[14510] = "High Priestess Mar'li"
 VGT.bosses["High Priest Thekal"] = {14509, 309}
+VGT.bosses[14509] = "High Priest Thekal"
 VGT.bosses["High Priestess Arlokk"] = {14515, 309}
+VGT.bosses[14515] = "High Priestess Arlokk"
 VGT.bosses["Hakkar"] = {14834, 309}
+VGT.bosses[14834] = "Hakkar"
 VGT.bosses["Bloodlord Mandokir"] = {11382, 309}
+VGT.bosses[11382] = "Bloodlord Mandokir"
 VGT.bosses["Hazza'rah"] = {15083, 309}
+VGT.bosses[15083] = "Hazza'rah"
 VGT.bosses["Gahz'ranka"] = {15114, 309}
+VGT.bosses[15114] = "Gahz'ranka"
 VGT.bosses["Jin'do the Hexxer"] = {11380, 309}
+VGT.bosses[11380] = "Jin'do the Hexxer"
 
+VGT.trackedRaids["Zul'Gurub"] = true
 VGT.trackedRaids[309] = true
 --TODO add ZG, AQ20, AQ40, Naxx
 
