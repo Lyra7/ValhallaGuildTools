@@ -1,6 +1,7 @@
 local MODULE_NAME = "VGT-Guild"
 local GUILDFRAME = CreateFrame("Frame");
 local guildCache = {}
+local cacheValid = false
 
 -- ############################################################
 -- ##### LOCAL FUNCTIONS ######################################
@@ -26,15 +27,15 @@ local function updateGuildCache()
     local name, rank, rankIndex, level, _, zone, note, officernote, online, status, class = GetGuildRosterInfo(i)
     name = strsplit("-", name)
     if (name) then
-
       guildCache[name] = {i, {level, class, zone}, {note, officernote}, {rankIndex, rank}, {online, status}}
     end
   end
+  cacheValid = true
 end
 
 local function onEvent(_, event)
   if (event == "GUILD_ROSTER_UPDATE") then
-    updateGuildCache()
+    cacheValid = false
   end
 end
 
@@ -43,6 +44,9 @@ end
 -- ############################################################
 
 VGT.GuildCache = function(name)
+  if (not cacheValid) then
+    updateGuildCache()
+  end
   if (name) then
     return guildCache[name]
   end

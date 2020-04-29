@@ -255,22 +255,36 @@ function VGT.IsInMyGuild(playerName)
 end
 
 function VGT.CheckGroupForGuildies()
-  if (IsInGroup() ~= true) then
-    return nil
+  if (IsInGroup()) then
+    local groupMembers = GetHomePartyInfo()
+    local guildGroupMembers = {}
+    local p = 0
+    for i = 0, GetNumGroupMembers() do
+      local groupMember = groupMembers[i]
+      if (VGT.IsInMyGuild(groupMember)) then
+        guildGroupMembers[p] = groupMember
+        VGT.Log(VGT.LOG_LEVEL.TRACE, "%s is in my guild", guildGroupMembers[p])
+        p = p + 1
+      end
+    end
+    return guildGroupMembers
   end
 
-  local groupMembers = GetHomePartyInfo()
-  local guildGroupMembers = {}
-  local p = 0
-  for i = 0, GetNumGroupMembers() do
-    local groupMember = groupMembers[i]
-    if (VGT.IsInMyGuild(groupMember)) then
-      guildGroupMembers[p] = groupMember
-      VGT.Log(VGT.LOG_LEVEL.TRACE, "%s is in my guild", guildGroupMembers[p])
-      p = p + 1
+  if (IsInRaid()) then
+    local raidList = {}
+    local p = 0
+    for i = 1, 40 do
+      local name, _, _, _, _, _, _, online = GetRaidRosterInfo(i)
+      if (VGT.IsInMyGuild(name)) then
+        guildGroupMembers[p] = name
+        VGT.Log(VGT.LOG_LEVEL.TRACE, "%s is in my guild", guildGroupMembers[p])
+        p = p + 1
+      end
     end
+    return guildGroupMembers
   end
-  return guildGroupMembers
+
+  return nil
 end
 
 function VGT.TableSize(t)
