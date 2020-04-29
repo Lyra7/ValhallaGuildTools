@@ -582,7 +582,7 @@ VGT.HandleCombatLogEvent = function()
   local _, cTypeID, cInstanceUID, cInstanceID, cUnitUID, cUnitID, hex = strsplit("-", cUID)
   if (cEvent == "UNIT_DIED") then
     local creatureUID = VGT.StringAppend(cTypeID, cInstanceUID, cInstanceID, cUnitUID, cUnitID, hex)
-    VGT.Log(VGT.LOG_LEVEL.DEBUG, "killed %s in %s.", creatureUID, cInstanceID)
+    VGT.Log(VGT.LOG_LEVEL.TRACE, "killed %s in %s.", creatureUID, cInstanceID)
     local dungeonData = VGT.dungeons[tonumber(cInstanceID)]
     if (not dungeonData and VGT.trackedRaids[tonumber(cInstanceID)]) then
       dungeonData = VGT.raids[tonumber(cInstanceID)]
