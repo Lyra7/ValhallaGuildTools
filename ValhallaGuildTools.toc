@@ -7,7 +7,7 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: Bonkeybee
-## Version: 11304.55
+## Version: 11304.57
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
@@ -32,6 +32,8 @@ dungeonsframe.xml
 VGT-Config.lua
 VGT-Core.lua
 VGT-Logging.lua
+VGT-Guild.lua
+VGT-Centralized.lua
 VGT-EP.lua
 VGT-Douse.lua
 VGT-Map.lua

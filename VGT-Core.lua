@@ -20,7 +20,12 @@ local users = {};
 local handleInstanceChangeEvent = function()
   local _, instanceType, _, _, _, _, _, instanceID, _, _ = GetInstanceInfo()
   if (instanceType == "party" or instanceType == "raid") then
-    local dungeonData = VGT.dungeons[tonumber(instanceID)]
+    local dungeonData = nil
+    if (VGT.trackedRaids[tonumber(instanceID)]) then
+      dungeonData = VGT.raids[tonumber(instanceID)]
+    else
+      dungeonData = VGT.dungeons[tonumber(instanceID)]
+    end
     if (dungeonData ~= nil) then
       local dungeonName = dungeonData[1]
       if (dungeonName ~= nil) then
