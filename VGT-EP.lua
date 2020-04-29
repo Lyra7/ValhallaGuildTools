@@ -164,16 +164,12 @@ function PushDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey
   self.sinceLastUpdate = (self.sinceLastUpdate or 0) + sinceLastUpdate
   if (synchronize and not cleaning and VGT.CommAvailability() > 50 and self.sinceLastUpdate >= 0.05 and IsInGuild() and getGuildOnline("Valhallax")) then
     local guildName = VGT.GetMyGuildName()
-    if (not dbSnapshot[guildName]) then
-      return
+    if (not dbSnapshot or not dbSnapshot[guildName]) then
+      return nil
     end
 
     self.firstPlayerKey = (self.firstPlayerKey or firstPlayerKey)
-    if (dbSnapshot[guildName] ~= nil) then
-      self.currentPlayerKey = (self.currentPlayerKey or next(dbSnapshot[guildName], self.currentPlayerKey))
-    else
-      self.currentPlayerKey = self.currentPlayerKey
-    end
+    self.currentPlayerKey = (self.currentPlayerKey or next(dbSnapshot[guildName], self.currentPlayerKey))
     self.currentGuidKey = (self.currentGuidKey or currentGuidKey)
 
     if (guildName == nil or VGT.IsInRaid() or self.firstPlayerKey == self.currentPlayerKey) then
@@ -586,11 +582,9 @@ VGT.HandleCombatLogEvent = function()
   local _, cTypeID, cInstanceUID, cInstanceID, cUnitUID, cUnitID, hex = strsplit("-", cUID)
   if (cEvent == "UNIT_DIED") then
     local creatureUID = VGT.StringAppend(cTypeID, cInstanceUID, cInstanceID, cUnitUID, cUnitID, hex)
-    local dungeonData = nil
-    if (VGT.trackedRaids[tonumber(cInstanceID)]) then
+    local dungeonData = VGT.dungeons[tonumber(cInstanceID)]
+    if (not dungeonData and VGT.trackedRaids[tonumber(cInstanceID)]) then
       dungeonData = VGT.raids[tonumber(cInstanceID)]
-    else
-      dungeonData = VGT.dungeons[tonumber(cInstanceID)]
     end
     if (dungeonData ~= nil) then
       local dungeonName = dungeonData[1]
@@ -615,6 +609,7 @@ VGT.EP_Initialize = function()
       if (UnitName("player") ~= "Valhallax") then
         dbSnapshot = deepcopy(VGT_EPDB2)
         synchronize = true
+        print("beep beep sync")
       end
       VGT.LIBS:RegisterComm(MODULE_NAME, handleEPMessageReceivedEvent)
       initialized = true
