@@ -1,6 +1,7 @@
 VGT.raids = {}
 VGT.dungeons = {}
 VGT.bosses = {}
+VGT.trackedRaids = {}
 
 VGT.raids["Molten Core"] = 409
 VGT.raids[409] = {"Molten Core", - 1039.7, - 7508.3, 0}
@@ -11,6 +12,20 @@ VGT.raids[249] = {"Onyxia's Lair", - 3754.4, - 4750.4, 1}
 VGT.raids["Blackwing Lair"] = 469
 VGT.raids[469] = {"Blackwing Lair", - 1228.4, - 7524.7, 0}
 
+VGT.raids["Zul'Gurub"] = 309
+VGT.raids[309] = {"Zul'Gurub", - 1206.9, - 11916.2, 0}
+VGT.bosses["High Priest Venoxis"] = {14507, 309}
+VGT.bosses["High Priestess Jeklik"] = {14517, 309}
+VGT.bosses["High Priestess Mar'li"] = {14510, 309}
+VGT.bosses["High Priest Thekal"] = {14509, 309}
+VGT.bosses["High Priestess Arlokk"] = {14515, 309}
+VGT.bosses["Hakkar"] = {14834, 309}
+VGT.bosses["Bloodlord Mandokir"] = {11382, 309}
+VGT.bosses["Hazza'rah"] = {15083, 309}
+VGT.bosses["Gahz'ranka"] = {15114, 309}
+VGT.bosses["Jin'do the Hexxer"] = {11380, 309}
+
+VGT.trackedRaids[309] = true
 --TODO add ZG, AQ20, AQ40, Naxx
 
 VGT.dungeons["Ragefire Chasm"] = 389
@@ -507,4 +522,4 @@ VGT.bosses["Lord Hel'nurath"] = {14506, 429}
 VGT.bosses[14506] = "Lord Hel'nurath"
 
 --special thanks to:
--- Grogazm, Puggly, Dirka, Celestine, Diebin, Lirah
+-- Grogazm, Puggly, Dirka, Celestine, Diebin, Lirah, Kählan, Deaddreamer, Hangingshoe

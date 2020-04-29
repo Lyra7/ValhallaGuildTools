@@ -190,6 +190,7 @@ local getClass = function(name)
       end
     end
   end
+  local memberData = VGT.GuildCache(name)
   local numTotalMembers = GetNumGuildMembers()
   for i = 1, numTotalMembers do
     local fullname, _, _, _, _, _, _, _, _, _, class = GetGuildRosterInfo(i)
