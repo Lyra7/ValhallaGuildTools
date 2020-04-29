@@ -43,8 +43,45 @@ local colorString = function(colorHex, str)
   return "|c"..colorHex..str.."|r"
 end
 
-local formatPlayerTooltip = function(player)
-  local text = colorString(select(4, GetClassColor(player.Class)), player.Name)
+local getClass = function(name, guildIndex)
+  if (guildIndex ~= nil) then
+    return select(11, GetGuildRosterInfo(guildIndex));
+  end
+
+  if (UnitPlayerOrPetInParty(name)) then
+    for i = 1, 5 do
+      local unitId = "party"..i
+      if (UnitName(unitId) == name) then
+        local class = select(2, UnitClass(unitId))
+        if class then return class end
+      end
+    end
+  end
+  if (UnitPlayerOrPetInRaid(name)) then
+    for i = 1, 40 do
+      local unitId = "raid"..i
+      if (UnitName(unitId) == name) then
+        local class = select(2, UnitClass(unitId))
+        if class then return class end
+      end
+    end
+  end
+  local numTotalMembers = GetNumGuildMembers()
+  for i = 1, numTotalMembers do
+    local fullname, _, _, _, _, _, _, _, _, _, class = GetGuildRosterInfo(i)
+    if (fullname ~= nil) then
+      local memberName = strsplit(NAME_SEPERATOR, fullname)
+      if (memberName == name) then return class end
+    end
+  end
+end
+
+local formatPlayerTooltip = function(player, class)
+  if (not class) then
+    class = getClass(player.Name, player.GuildNumber)
+  end
+
+  local text = colorString(select(4, GetClassColor(class)), player.Name)
 
   if (player.HP ~= nil) then
     return text..HP_SEPERATOR..colorString("ff"..VGT.RGBToHex(VGT.ColorGradient(tonumber(player.HP), 1, 0, 0, 1, 1, 0, 0, 1, 0)), VGT.Round(player.HP * 100, 0)..PERCENT)
@@ -66,7 +103,9 @@ local getGuildNumber = function(name)
 end
 
 local formatTooltip = function(player, distance)
-  local text = ""
+  local text = "";
+  local class;
+  local zone;
 
   if (not player.NotInGuild and player.GuildNumber == nil) then
     player.GuildNumber = getGuildNumber(player.Name);
@@ -76,16 +115,18 @@ local formatTooltip = function(player, distance)
   end
 
   if (player.GuildNumber ~= nil) then
-    text = select(6, GetGuildRosterInfo(player.GuildNumber))..NEW_LINE
+    _, _, _, _, _, zone, _, _, _, _, class = GetGuildRosterInfo(player.GuildNumber);
+    player.Class = class;
+    text = zone..NEW_LINE
   elseif (player.Zone ~= nil) then
     text = player.Zone..NEW_LINE
   end
 
-  text = text..formatPlayerTooltip(player)
+  text = text..formatPlayerTooltip(player, class)
 
   for _, otherPlayer in pairs(players) do
     if (otherPlayer ~= player and otherPlayer.X ~= nil and otherPlayer.Y ~= nil and player.X ~= nil and player.Y ~= nil and (abs(player.X - otherPlayer.X) + abs(player.Y - otherPlayer.Y) < distance)) then
-      text = text..NEW_LINE..formatPlayerTooltip(otherPlayer)
+      text = text..NEW_LINE..formatPlayerTooltip(otherPlayer, otherPlayer.Class)
     end
   end
 
@@ -171,36 +212,6 @@ local createMinimapPin = function(player)
   player.MinimapTexture = pin.Texture
 end
 
-local getClass = function(name)
-  if (UnitPlayerOrPetInParty(name)) then
-    for i = 1, 5 do
-      local unitId = "party"..i
-      if (UnitName(unitId) == name) then
-        local class = select(2, UnitClass(unitId))
-        if class then return class end
-      end
-    end
-  end
-  if (UnitPlayerOrPetInRaid(name)) then
-    for i = 1, 40 do
-      local unitId = "raid"..i
-      if (UnitName(unitId) == name) then
-        local class = select(2, UnitClass(unitId))
-        if class then return class end
-      end
-    end
-  end
-  local memberData = VGT.GuildCache(name)
-  local numTotalMembers = GetNumGuildMembers()
-  for i = 1, numTotalMembers do
-    local fullname, _, _, _, _, _, _, _, _, _, class = GetGuildRosterInfo(i)
-    if (fullname ~= nil) then
-      local memberName = strsplit(NAME_SEPERATOR, fullname)
-      if (memberName == name) then return class end
-    end
-  end
-end
-
 local isDungeonCoords = function(x, y, instanceMapId, decimals)
   for key, value in pairs(VGT.raids) do
     if (value and not tonumber(value) and x == VGT.Round(value[2], decimals or 0) and y == VGT.Round(value[3], decimals or 0) and instanceMapId == value[4]) then
@@ -224,7 +235,6 @@ local addOrUpdatePlayer = function(name, x, y, continentId, hp, fromCommMessage,
     player.X = 0
     player.Y = 0
     player.ContinentId = nil
-    player.Class = getClass(name)
     player.Name = name
     player.HasCommMessages = false
     player.LastCommReceived = 0
