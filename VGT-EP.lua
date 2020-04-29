@@ -169,7 +169,11 @@ function PushDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey
     end
 
     self.firstPlayerKey = (self.firstPlayerKey or firstPlayerKey)
-    self.currentPlayerKey = (self.currentPlayerKey or next(dbSnapshot[guildName], self.currentPlayerKey))
+    if (dbSnapshot[guildName] ~= nil) then
+      self.currentPlayerKey = (self.currentPlayerKey or next(dbSnapshot[guildName], self.currentPlayerKey))
+    else
+      self.currentPlayerKey = self.currentPlayerKey
+    end
     self.currentGuidKey = (self.currentGuidKey or currentGuidKey)
 
     if (guildName == nil or VGT.IsInRaid() or self.firstPlayerKey == self.currentPlayerKey) then
