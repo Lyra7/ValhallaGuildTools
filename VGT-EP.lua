@@ -6,6 +6,7 @@ local synchronize = false
 local cleaning = false
 local dbSnapshot = {}
 
+local MINIMUM_GP = 50
 local MAX_TIME_TO_KEEP = 30
 local MAX_TIME_TO_KEEP_RAID = 8
 
@@ -368,6 +369,8 @@ local playerStatistics = function(player)
   return player, killCount, totalKillCount, mostKilledBossName, mostKilledBossCount, mostKilledBossDungeonName
 end
 
+audit = {}
+--audit["Bonkeybee"] = true
 VGT.rewardEP = function(test)
   local guildTable = {}
   for i = 1, GetNumGuildMembers() do
@@ -400,7 +403,7 @@ VGT.rewardEP = function(test)
       end
       if (oldestGuid ~= nil and guildTable[player]) then
         local guidData = playerData[oldestGuid]
-        if (not test) then
+        if (not test and not audit[player]) then
           playerData[oldestGuid] = {guidData[1], guidData[2], guidData[3], true}
         end
         if (players[player]) then
@@ -422,7 +425,7 @@ VGT.rewardEP = function(test)
         ep = 0
       end
       if (gp == nil or gp == "") then
-        gp = minimumGP
+        gp = MINIMUM_GP
       end
       local ep = ep + (10 * count)
 
@@ -467,7 +470,7 @@ VGT.rewardRaidEP = function(test)
     end
     if (oldestGuid ~= nil and guildTable[player]) then
       local guidData = playerData[oldestGuid]
-      if (not test) then
+      if (not test and not audit[player]) then
         playerData[oldestGuid] = {guidData[1], guidData[2], guidData[3], true}
       end
       if (not players[player]) then
@@ -486,7 +489,7 @@ VGT.rewardRaidEP = function(test)
         ep = 0
       end
       if (gp == nil or gp == "") then
-        gp = minimumGP
+        gp = MINIMUM_GP
       end
       local ep = ep + 100
 
