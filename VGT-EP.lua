@@ -401,7 +401,6 @@ VGT.rewardEP = function(test)
       if (oldestGuid ~= nil and guildTable[player]) then
         local guidData = playerData[oldestGuid]
         if (not test) then
-          _, _, guildRankIndex = GetGuildInfo("player");
           playerData[oldestGuid] = {guidData[1], guidData[2], guidData[3], true}
         end
         if (players[player]) then
@@ -413,6 +412,7 @@ VGT.rewardEP = function(test)
     end
   end
 
+  local _, _, guildRankIndex = GetGuildInfo("player");
   if (guildRankIndex == 1) then
     for player, count in pairs(players) do
       local i = guildTable[player][1]
@@ -468,7 +468,6 @@ VGT.rewardRaidEP = function(test)
     if (oldestGuid ~= nil and guildTable[player]) then
       local guidData = playerData[oldestGuid]
       if (not test) then
-        _, _, guildRankIndex = GetGuildInfo("player");
         playerData[oldestGuid] = {guidData[1], guidData[2], guidData[3], true}
       end
       if (not players[player]) then
@@ -477,6 +476,7 @@ VGT.rewardRaidEP = function(test)
     end
   end
 
+  local _, _, guildRankIndex = GetGuildInfo("player");
   if (guildRankIndex == 1) then
     for player, count in pairs(players) do
       local i = guildTable[player][1]
