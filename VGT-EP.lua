@@ -418,9 +418,17 @@ VGT.rewardEP = function(test)
       local i = guildTable[player][1]
       local officernote = guildTable[player][2]
       local ep, gp = strsplit(",", officernote)
+      if (ep == nil or ep == "") then
+        ep = 0
+      end
+      if (gp == nil or gp == "") then
+        gp = minimumGP
+      end
       local ep = ep + (10 * count)
 
-      GuildRosterSetOfficerNote(i, ep..","..gp)
+      if (not test) then
+        GuildRosterSetOfficerNote(i, ep..","..gp)
+      end
       SendChatMessage("Adding 50EP to "..player.." (dungeons)", "OFFICER")
     end
   end
@@ -474,9 +482,17 @@ VGT.rewardRaidEP = function(test)
       local i = guildTable[player][1]
       local officernote = guildTable[player][2]
       local ep, gp = strsplit(",", officernote)
+      if (ep == nil or ep == "") then
+        ep = 0
+      end
+      if (gp == nil or gp == "") then
+        gp = minimumGP
+      end
       local ep = ep + 100
 
-      GuildRosterSetOfficerNote(i, ep..","..gp)
+      if (not test) then
+        GuildRosterSetOfficerNote(i, ep..","..gp)
+      end
       SendChatMessage("Adding 100EP to "..player.." (20-man raid)", "OFFICER")
     end
   end
