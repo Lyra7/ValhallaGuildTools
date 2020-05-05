@@ -7,7 +7,7 @@ local cleaning = false
 local dbSnapshot = {}
 
 local MAX_TIME_TO_KEEP = 30
-local MAX_TIME_TO_KEEP_RAID = 7
+local MAX_TIME_TO_KEEP_RAID = 8
 
 -- ############################################################
 -- ##### LOCAL FUNCTIONS ######################################
@@ -455,8 +455,8 @@ VGT.rewardRaidEP = function(test)
     local killCount = 0
     for guid, guidData in pairs(playerData) do
       local timestamp = tonumber(guidData[1])
+      local dungeonId = tonumber(guidData[2])
       local rewarded = guidData[4]
-      local dungeonId = guidData[2]
       if (withinDays(timestamp, MAX_TIME_TO_KEEP_RAID) and not rewarded and VGT.trackedRaids[dungeonId]) then
         killCount = killCount + 1
         if (timestamp < oldestTimestamp) then
