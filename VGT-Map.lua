@@ -117,7 +117,9 @@ local formatTooltip = function(player, distance)
   if (player.GuildNumber ~= nil) then
     _, _, _, _, _, zone, _, _, _, _, class = GetGuildRosterInfo(player.GuildNumber);
     player.Class = class;
-    text = zone..NEW_LINE
+    if(zone ~= nil) then
+      text = zone..NEW_LINE
+    end
   elseif (player.Zone ~= nil) then
     text = player.Zone..NEW_LINE
   end

@@ -116,6 +116,7 @@ function CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKe
   if (guildName == nil or VGT_EPDB2[guildName] == nil or VGT.IsInRaid() or withinDays(VGT_DB_TIMESTAMP, 1)) then
     -- Stop the loop
     cleaning = false
+    VGT_DB_TIMESTAMP = GetServerTime()
     CleanDatabase:SetScript("OnUpdate", nil)
     return nil
   end
@@ -126,15 +127,25 @@ function CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKe
   if (self.firstPlayerKey == self.currentPlayerKey) then
     -- Stop the loop
     cleaning = false
+    VGT_DB_TIMESTAMP = GetServerTime()
     CleanDatabase:SetScript("OnUpdate", nil)
     return nil
   end
-  VGT_DB_TIMESTAMP = GetServerTime()
 
   -- Check if player exists
   if (self.currentPlayerKey ~= nil) then
     -- Get next guid data
-    self.currentGuidKey, guidData = next(VGT_EPDB2[guildName][self.currentPlayerKey], self.currentGuidKey)
+    if (VGT_EPDB2[guildName][self.currentPlayerKey] ~= nil) then
+      if (VGT.Count(VGT_EPDB2[guildName][self.currentPlayerKey]) == 0) then
+        VGT.Log(VGT.LOG_LEVEL.DEBUG, "CLEANING %s", self.currentPlayerKey)
+        VGT_EPDB2[guildName][self.currentPlayerKey] = nil
+      else
+        self.currentGuidKey, guidData = next(VGT_EPDB2[guildName][self.currentPlayerKey], self.currentGuidKey)
+      end
+    else
+      self.currentGuidKey = nil
+      guidData = nil
+    end
     -- Set the firstKeys
     if (self.firstPlayerKey == nil and self.currentGuidKey == nil) then
       self.firstPlayerKey = self.currentPlayerKey
@@ -152,6 +163,10 @@ function CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKe
       if (not validateRecord(guildName, timestamp, dungeonName, bossName, nil)) then
         VGT.Log(VGT.LOG_LEVEL.DEBUG, "CLEANING %s", self.currentGuidKey)
         VGT_EPDB2[guildName][self.currentPlayerKey][self.currentGuidKey] = nil
+        if (VGT.Count(VGT_EPDB2[guildName][self.currentPlayerKey]) == 0) then
+          VGT.Log(VGT.LOG_LEVEL.DEBUG, "CLEANING %s", self.currentPlayerKey)
+          VGT_EPDB2[guildName][self.currentPlayerKey] = nil
+        end
       end
     else
       -- Get the next player data
