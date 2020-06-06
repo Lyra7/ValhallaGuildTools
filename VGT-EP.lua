@@ -33,7 +33,7 @@ local timeStampToDaysFromNow = function(timestamp)
   return (GetServerTime() - (timestamp or 0)) / (60 * 60 * 24)
 end
 
-local withinDays = function(timestamp, days)
+VGT.withinDays = function(timestamp, days)
   local daysSinceTimestamp = timeStampToDaysFromNow(timestamp)
   if (daysSinceTimestamp > - 0.01 and daysSinceTimestamp < (days or 0)) then
     return true
@@ -42,7 +42,7 @@ local withinDays = function(timestamp, days)
 end
 
 local validateTime = function(timestamp, sender)
-  if (withinDays(timestamp, MAX_TIME_TO_KEEP)) then
+  if (VGT.withinDays(timestamp, MAX_TIME_TO_KEEP)) then
     return true
   end
   VGT.Log(VGT.LOG_LEVEL.TRACE, "invalid timestamp %s from %s", timeStampToDaysFromNow(timestamp), VGT.Safe(sender))
@@ -113,7 +113,7 @@ end
 
 function CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey)
   local guildName = VGT.GetMyGuildName()
-  if (guildName == nil or VGT_EPDB2[guildName] == nil or VGT.IsInRaid() or withinDays(VGT_DB_TIMESTAMP, 1)) then
+  if (guildName == nil or VGT_EPDB2[guildName] == nil or VGT.IsInRaid() or VGT.withinDays(VGT_DB_TIMESTAMP, 1)) then
     -- Stop the loop
     cleaning = false
     VGT_DB_TIMESTAMP = GetServerTime()
@@ -354,7 +354,7 @@ local playerStatistics = function(player)
     for guid, guidData in pairs(playerData) do
       local timestamp = tonumber(guidData[1])
       local rewarded = guidData[4]
-      if (withinDays(timestamp, MAX_TIME_TO_KEEP)) then
+      if (VGT.withinDays(timestamp, MAX_TIME_TO_KEEP)) then
         totalKillCount = totalKillCount + 1
         if (not rewarded) then
           killCount = killCount + 1
@@ -384,6 +384,28 @@ local playerStatistics = function(player)
   return player, killCount, totalKillCount, mostKilledBossName, mostKilledBossCount, mostKilledBossDungeonName
 end
 
+function VGT.getBossCountForPlayer(guild, name, raid)
+  local killCount = 0
+  local guildData = VGT_EPDB2[guild]
+  if (guildData) then
+    local playerData = guildData[name]
+    if (playerData) then
+      for _, guidData in pairs(playerData) do
+        if (raid) then
+          if (VGT.withinDays(tonumber(guidData[1]), MAX_TIME_TO_KEEP) and not guidData[4] and VGT.trackedRaids[guidData[2]]) then
+            killCount = killCount + 1
+          end
+        else
+          if (VGT.withinDays(tonumber(guidData[1]), MAX_TIME_TO_KEEP_RAID) and not guidData[4] and not VGT.trackedRaids[guidData[2]]) then
+            killCount = killCount + 1
+          end
+        end
+      end
+      return killCount
+    end
+  end
+end
+
 audit = {}
 --audit["Bonkeybee"] = true
 VGT.rewardEP = function(test)
@@ -408,7 +430,7 @@ VGT.rewardEP = function(test)
         local timestamp = tonumber(guidData[1])
         local rewarded = guidData[4]
         local dungeonId = guidData[2]
-        if (withinDays(timestamp, MAX_TIME_TO_KEEP) and not rewarded and not VGT.trackedRaids[dungeonId]) then
+        if (VGT.withinDays(timestamp, MAX_TIME_TO_KEEP) and not rewarded and not VGT.trackedRaids[dungeonId]) then
           killCount = killCount + 1
           if (timestamp < oldestTimestamp) then
             oldestTimestamp = timestamp
@@ -442,12 +464,15 @@ VGT.rewardEP = function(test)
       if (gp == nil or gp == "") then
         gp = MINIMUM_GP
       end
-      local ep = ep + (10 * count)
+      local bonus = (10 * count)
+      local ep = ep + bonus
 
       if (not test) then
         GuildRosterSetOfficerNote(i, ep..","..gp)
+        SendChatMessage("Adding "..bonus.."EP to "..player.." (dungeons)", "OFFICER")
+      else
+        print("Adding "..bonus.."EP to "..player.." (dungeons)")
       end
-      SendChatMessage("Adding 50EP to "..player.." (dungeons)", "OFFICER")
     end
   end
 
@@ -475,7 +500,7 @@ VGT.rewardRaidEP = function(test)
       local timestamp = tonumber(guidData[1])
       local dungeonId = tonumber(guidData[2])
       local rewarded = guidData[4]
-      if (withinDays(timestamp, MAX_TIME_TO_KEEP_RAID) and not rewarded and VGT.trackedRaids[dungeonId]) then
+      if (VGT.withinDays(timestamp, MAX_TIME_TO_KEEP_RAID) and not rewarded and VGT.trackedRaids[dungeonId]) then
         killCount = killCount + 1
         if (timestamp < oldestTimestamp) then
           oldestTimestamp = timestamp
@@ -506,12 +531,15 @@ VGT.rewardRaidEP = function(test)
       if (gp == nil or gp == "") then
         gp = MINIMUM_GP
       end
-      local ep = ep + 100
+      local bonus = 100
+      local ep = ep + bonus
 
       if (not test) then
         GuildRosterSetOfficerNote(i, ep..","..gp)
+        SendChatMessage("Adding "..bonus.."EP to "..player.." (20-man raid)", "OFFICER")
+      else
+        print("Adding "..bonus.."EP to "..player.." (20-man raid)")
       end
-      SendChatMessage("Adding 100EP to "..player.." (20-man raid)", "OFFICER")
     end
   end
 
