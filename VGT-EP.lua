@@ -392,12 +392,14 @@ function VGT.getBossCountForPlayer(guild, name, raid)
     if (playerData) then
       for _, guidData in pairs(playerData) do
         if (not guidData[4]) then
+          local timestamp = tonumber(guidData[1])
+          local dungeonId = tonumber(guidData[2])
           if (raid) then
-            if (VGT.withinDays(tonumber(guidData[1]), MAX_TIME_TO_KEEP_RAID) and VGT.trackedRaids[guidData[2]]) then
+            if (VGT.withinDays(timestamp, MAX_TIME_TO_KEEP_RAID) and VGT.trackedRaids[dungeonId]) then
               killCount = killCount + 1
             end
           else
-            if (VGT.withinDays(tonumber(guidData[1]), MAX_TIME_TO_KEEP) and not VGT.trackedRaids[guidData[2]]) then
+            if (VGT.withinDays(timestamp, MAX_TIME_TO_KEEP) and not VGT.trackedRaids[dungeonId]) then
               killCount = killCount + 1
             end
           end
