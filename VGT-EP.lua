@@ -391,13 +391,15 @@ function VGT.getBossCountForPlayer(guild, name, raid)
     local playerData = guildData[name]
     if (playerData) then
       for _, guidData in pairs(playerData) do
-        if (raid) then
-          if (VGT.withinDays(tonumber(guidData[1]), MAX_TIME_TO_KEEP) and not guidData[4] and VGT.trackedRaids[guidData[2]]) then
-            killCount = killCount + 1
-          end
-        else
-          if (VGT.withinDays(tonumber(guidData[1]), MAX_TIME_TO_KEEP_RAID) and not guidData[4] and not VGT.trackedRaids[guidData[2]]) then
-            killCount = killCount + 1
+        if (not guidData[4]) then
+          if (raid) then
+            if (VGT.withinDays(tonumber(guidData[1]), MAX_TIME_TO_KEEP_RAID) and VGT.trackedRaids[guidData[2]]) then
+              killCount = killCount + 1
+            end
+          else
+            if (VGT.withinDays(tonumber(guidData[1]), MAX_TIME_TO_KEEP) and not VGT.trackedRaids[guidData[2]]) then
+              killCount = killCount + 1
+            end
           end
         end
       end

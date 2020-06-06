@@ -38,7 +38,7 @@ local function onEvent(_, event, arg1, arg2)
             end
             if (rosterInfo[2][1] >= MIN_RAID_LEVEL and raidKillCount < MAX_RAID_KILL) then
               VGT_REMINDERS[name][1] = GetServerTime()
-              local remaining = MAX_RAID_KILL - killCount
+              local remaining = MAX_RAID_KILL - raidKillCount
               local message = "(AUTOMATED) Hello "..name..", this is a daily reminder that you still need to complete your weekly guild 20-man raids. You currently need to kill "..remaining.." more "
               if (remaining == 1) then
                 message = message.."boss"
