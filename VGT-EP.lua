@@ -462,14 +462,14 @@ VGT.rewardEP = function(test)
       local i = guildTable[player][1]
       local officernote = guildTable[player][2]
       local ep, gp = strsplit(",", officernote)
-      if (ep == nil or ep == "") then
+      if (ep == nil or ep == "" or not tonumber(ep)) then
         ep = 0
       end
-      if (gp == nil or gp == "") then
+      if (gp == nil or gp == "" or not tonumber(gp)) then
         gp = MINIMUM_GP
       end
       local bonus = (10 * count)
-      local ep = ep + bonus
+      ep = ep + bonus
 
       if (not test) then
         GuildRosterSetOfficerNote(i, ep..","..gp)
@@ -529,14 +529,14 @@ VGT.rewardRaidEP = function(test)
       local i = guildTable[player][1]
       local officernote = guildTable[player][2]
       local ep, gp = strsplit(",", officernote)
-      if (ep == nil or ep == "") then
+      if (ep == nil or ep == "" or not tonumber(ep)) then
         ep = 0
       end
-      if (gp == nil or gp == "") then
+      if (gp == nil or gp == "" or not tonumber(gp)) then
         gp = MINIMUM_GP
       end
       local bonus = 100
-      local ep = ep + bonus
+      ep = ep + bonus
 
       if (not test) then
         GuildRosterSetOfficerNote(i, ep..","..gp)
