@@ -99,10 +99,9 @@ end
 
 function CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey)
   local guildName = VGT.GetMyGuildName()
-  if (guildName == nil or VGT_DUNGEON_DB[guildName] == nil or VGT.IsInRaid() or VGT.withinDays(VGT_DB_TIMESTAMP, 0)) then
+  if (guildName == nil or VGT_DUNGEON_DB[guildName] == nil or VGT.IsInRaid() or VGT.withinDays(VGT_DB_TIMESTAMP, 1)) then
     -- Stop the loop
     cleaning = false
-    --VGT_DB_TIMESTAMP = GetServerTime()
     CleanDatabase:SetScript("OnUpdate", nil)
     return nil
   end
