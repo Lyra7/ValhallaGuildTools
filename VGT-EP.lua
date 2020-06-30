@@ -42,7 +42,8 @@ VGT.withinDays = function(timestamp, days)
 end
 
 local validateTime = function(timestamp, sender)
-  if (VGT.withinDays(timestamp, MAX_TIME_TO_KEEP)) then
+  timestamp = tonumber(timestamp)
+  if (timestamp and VGT.withinDays(timestamp, MAX_TIME_TO_KEEP)) then
     return true
   end
   VGT.Log(VGT.LOG_LEVEL.TRACE, "invalid timestamp %s from %s", timeStampToDaysFromNow(timestamp), VGT.Safe(sender))
@@ -86,10 +87,10 @@ local validateRecord = function(guildName, timestamp, dungeonName, bossName, sen
 end
 
 local cleanRecord = function(guildName)
-  for player, playerData in pairs(VGT_EPDB2[guildName]) do
+  for player, playerData in pairs(VGT_DUNGEON_DB[guildName]) do
     for guid, guidData in pairs(playerData) do
       if (not validateRecord(guildName, guidData[1], guidData[2], guidData[3], nil)) then
-        VGT_EPDB2[guildName][player][guid] = nil
+        VGT_DUNGEON_DB[guildName][player][guid] = nil
         VGT.Log(VGT.LOG_LEVEL.DEBUG, "record %s:%s:%s removed for being invalid", guildName, player, guid)
       end
     end
@@ -98,16 +99,16 @@ end
 
 function CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey)
   local guildName = VGT.GetMyGuildName()
-  if (guildName == nil or VGT_EPDB2[guildName] == nil or VGT.IsInRaid() or VGT.withinDays(VGT_DB_TIMESTAMP, 1)) then
+  if (guildName == nil or VGT_DUNGEON_DB[guildName] == nil or VGT.IsInRaid() or VGT.withinDays(VGT_DB_TIMESTAMP, 0)) then
     -- Stop the loop
     cleaning = false
-    VGT_DB_TIMESTAMP = GetServerTime()
+    --VGT_DB_TIMESTAMP = GetServerTime()
     CleanDatabase:SetScript("OnUpdate", nil)
     return nil
   end
 
   self.firstPlayerKey = (self.firstPlayerKey or firstPlayerKey)
-  self.currentPlayerKey = (self.currentPlayerKey or next(VGT_EPDB2[guildName], self.currentPlayerKey))
+  self.currentPlayerKey = (self.currentPlayerKey or next(VGT_DUNGEON_DB[guildName], self.currentPlayerKey))
   self.currentGuidKey = (self.currentGuidKey or currentGuidKey)
   if (self.firstPlayerKey == self.currentPlayerKey) then
     -- Stop the loop
@@ -120,42 +121,43 @@ function CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKe
   -- Check if player exists
   if (self.currentPlayerKey ~= nil) then
     -- Get next guid data
-    if (VGT_EPDB2[guildName][self.currentPlayerKey] ~= nil) then
-      if (VGT.Count(VGT_EPDB2[guildName][self.currentPlayerKey]) == 0) then
+    if (VGT_DUNGEON_DB[guildName][self.currentPlayerKey] ~= nil) then
+      if (VGT.Count(VGT_DUNGEON_DB[guildName][self.currentPlayerKey]) == 0) then
         VGT.Log(VGT.LOG_LEVEL.DEBUG, "CLEANING %s", self.currentPlayerKey)
-        VGT_EPDB2[guildName][self.currentPlayerKey] = nil
+        VGT_DUNGEON_DB[guildName][self.currentPlayerKey] = nil
       else
-        self.currentGuidKey, guidData = next(VGT_EPDB2[guildName][self.currentPlayerKey], self.currentGuidKey)
+        self.currentGuidKey, timestamp = next(VGT_DUNGEON_DB[guildName][self.currentPlayerKey], self.currentGuidKey)
       end
     else
       self.currentGuidKey = nil
-      guidData = nil
     end
     -- Set the firstKeys
     if (self.firstPlayerKey == nil and self.currentGuidKey == nil) then
       self.firstPlayerKey = self.currentPlayerKey
     end
-    -- Check if guid exists
-    if (guidData ~= nil) then
-      local timestamp = guidData[1]
-      local dungeonData = VGT.dungeons[guidData[2]]
-      if (not dungeonData and VGT.trackedRaids[guidData[2]]) then
-        dungeonData = VGT.raids[guidData[2]]
+    -- Check if data exists
+    if (timestamp and self.currentGuidKey) then
+      local _, dungeonId, bossId = strsplit("-", self.currentGuidKey)
+      dungeonId = tonumber(dungeonId)
+      bossId = tonumber(bossId)
+
+      local dungeonData = VGT.dungeons[dungeonId]
+      if (not dungeonData and VGT.trackedRaids[dungeonId]) then
+        dungeonData = VGT.raids[dungeonId]
       end
-      local dungeonName = dungeonData[1]
-      local bossName = VGT.bosses[guidData[3]]
+
       -- Check if data is valid
-      if (not validateRecord(guildName, timestamp, dungeonName, bossName, nil)) then
+      if (not dungeonData or not validateRecord(guildName, timestamp, dungeonData[1], VGT.bosses[bossId], nil)) then
         VGT.Log(VGT.LOG_LEVEL.DEBUG, "CLEANING %s", self.currentGuidKey)
-        VGT_EPDB2[guildName][self.currentPlayerKey][self.currentGuidKey] = nil
-        if (VGT.Count(VGT_EPDB2[guildName][self.currentPlayerKey]) == 0) then
+        VGT_DUNGEON_DB[guildName][self.currentPlayerKey][self.currentGuidKey] = nil
+        if (VGT.Count(VGT_DUNGEON_DB[guildName][self.currentPlayerKey]) == 0) then
           VGT.Log(VGT.LOG_LEVEL.DEBUG, "CLEANING %s", self.currentPlayerKey)
-          VGT_EPDB2[guildName][self.currentPlayerKey] = nil
+          VGT_DUNGEON_DB[guildName][self.currentPlayerKey] = nil
         end
       end
     else
       -- Get the next player data
-      self.currentPlayerKey = next(VGT_EPDB2[guildName], self.currentPlayerKey)
+      self.currentPlayerKey = next(VGT_DUNGEON_DB[guildName], self.currentPlayerKey)
     end
   end
 end
@@ -184,24 +186,25 @@ function PushDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey
 
     -- Check if player exists
     if (self.currentPlayerKey ~= nil) then
-      -- Get next guid data
-      self.currentGuidKey, guidData = next(dbSnapshot[guildName][self.currentPlayerKey], self.currentGuidKey)
+      -- Get next data
+      self.currentGuidKey, timestamp = next(dbSnapshot[guildName][self.currentPlayerKey], self.currentGuidKey)
       -- Set the firstKeys
       if (self.firstPlayerKey == nil and self.currentGuidKey == nil) then
         self.firstPlayerKey = self.currentPlayerKey
       end
-      -- Check if guid exists
-      if (guidData ~= nil) then
+      -- Check if data exists
+      if (timestamp) then
+        local _, dungeonId, bossId = strsplit("-", self.currentGuidKey)
+        dungeonId = tonumber(dungeonId)
+        bossId = tonumber(bossId)
 
-        local timestamp = guidData[1]
         -- Check if data is valid
-        local dungeonData = VGT.dungeons[guidData[2]]
-        if (not dungeonData and VGT.trackedRaids[guidData[2]]) then
-          dungeonData = VGT.raids[guidData[2]]
+        local dungeonData = VGT.dungeons[dungeonId]
+        if (not dungeonData and VGT.trackedRaids[dungeonId]) then
+          dungeonData = VGT.raids[dungeonId]
         end
-        if (validateRecord(guildName, timestamp, dungeonData[1], VGT.bosses[guidData[3]], nil)) then
+        if (dungeonData and validateRecord(guildName, timestamp, dungeonData[1], VGT.bosses[bossId], nil)) then
           -- Send the data
-          --TODO send only guidkey + timestamp and pull dungeon and boss from the key
           local key = format("%s:%s:%s", self.currentGuidKey, guildName, self.currentPlayerKey)
           local message = format("%s;%s", key, timestamp)
           VGT.Log(VGT.LOG_LEVEL.TRACE, "sending %s to GUILD for %s:SYNCHRONIZATION_REQUEST.", message, MODULE_NAME)
@@ -227,20 +230,20 @@ local handleUnitDeath = function(timestamp, creatureUID, dungeonId, dungeonName,
       local groupedGuildiesStr = VGT.TableToString(groupedGuildies, ",", false, true)
       VGT.Log(VGT.LOG_LEVEL.INFO, "killed %s in %s as a guild with %s", bossName, dungeonName, groupedGuildiesStr)
 
-      if (VGT_EPDB2 == nil) then
-        VGT_EPDB2 = {}
+      if (VGT_DUNGEON_DB == nil) then
+        VGT_DUNGEON_DB = {}
       end
       if (groupedGuildiesStr ~= nil) then
-        if (VGT_EPDB2[guildName] == nil) then
-          VGT_EPDB2[guildName] = {}
+        if (VGT_DUNGEON_DB[guildName] == nil) then
+          VGT_DUNGEON_DB[guildName] = {}
         end
         local players = {strsplit(",", groupedGuildiesStr)}
         for i = 1, #players do
-          if (VGT_EPDB2[guildName][players[i]] == nil) then
-            VGT_EPDB2[guildName][players[i]] = {}
+          if (VGT_DUNGEON_DB[guildName][players[i]] == nil) then
+            VGT_DUNGEON_DB[guildName][players[i]] = {}
           end
-          if (VGT_EPDB2[guildName][players[i]][creatureUID] == nil) then
-            VGT_EPDB2[guildName][players[i]][creatureUID] = {timestamp, dungeonId, bossId}
+          if (VGT_DUNGEON_DB[guildName][players[i]][creatureUID] == nil) then
+            VGT_DUNGEON_DB[guildName][players[i]][creatureUID] = timestamp
           end
         end
       end
@@ -293,21 +296,21 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
       local dungeonName = dungeonData[1]
       local bossName = VGT.bosses[tonumber(bossId)]
       if (validateRecord(guildName, timestamp, dungeonName, bossName, sender)) then
-        if (VGT_EPDB2 == nil) then
-          VGT_EPDB2 = {}
+        if (VGT_DUNGEON_DB == nil) then
+          VGT_DUNGEON_DB = {}
         end
         if (groupedGuildiesStr ~= nil) then
-          if (VGT_EPDB2[guildName] == nil) then
-            VGT_EPDB2[guildName] = {}
+          if (VGT_DUNGEON_DB[guildName] == nil) then
+            VGT_DUNGEON_DB[guildName] = {}
           end
           local players = {strsplit(",", groupedGuildiesStr)}
           for i = 1, #players do
-            if (VGT_EPDB2[guildName][players[i]] == nil) then
-              VGT_EPDB2[guildName][players[i]] = {}
+            if (VGT_DUNGEON_DB[guildName][players[i]] == nil) then
+              VGT_DUNGEON_DB[guildName][players[i]] = {}
             end
-            if (VGT_EPDB2[guildName][players[i]][creatureUID] == nil) then
+            if (VGT_DUNGEON_DB[guildName][players[i]][creatureUID] == nil) then
               VGT.Log(VGT.LOG_LEVEL.DEBUG, "saving record %s:%s:%s from %s.", guildName, players[i], creatureUID, sender)
-              VGT_EPDB2[guildName][players[i]][creatureUID] = {timestamp, dungeonId, bossId}
+              VGT_DUNGEON_DB[guildName][players[i]][creatureUID] = timestamp
             else
               VGT.Log(VGT.LOG_LEVEL.TRACE, "record %s:%s:%s from %s already exists.", guildName, players[i], creatureUID, sender)
             end
@@ -321,7 +324,7 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
 end
 
 local playerStatistics = function(player)
-  local playerData = VGT_EPDB2[VGT.GetMyGuildName()][player]
+  local playerData = VGT_DUNGEON_DB[VGT.GetMyGuildName()][player]
   local oldestTimestamp = GetServerTime()
   local oldestGuid
   local totalKillCount = 0
@@ -367,7 +370,7 @@ end
 
 function VGT.getBossCountForPlayer(guild, name, raid)
   local killCount = 0
-  local guildData = VGT_EPDB2[guild]
+  local guildData = VGT_DUNGEON_DB[guild]
   if (guildData) then
     local playerData = guildData[name]
     if (playerData) then
@@ -407,7 +410,7 @@ VGT.rewardEP = function(test)
   local players = {}
   for i = 1, 5 do
     local currentTime = GetServerTime()
-    for player, playerData in pairs(VGT_EPDB2[VGT.GetMyGuildName()]) do
+    for player, playerData in pairs(VGT_DUNGEON_DB[VGT.GetMyGuildName()]) do
       local oldestTimestamp = currentTime
       local oldestGuid
       local killCount = 0
@@ -477,7 +480,7 @@ VGT.rewardRaidEP = function(test)
 
   local players = {}
   local currentTime = GetServerTime()
-  for player, playerData in pairs(VGT_EPDB2[VGT.GetMyGuildName()]) do
+  for player, playerData in pairs(VGT_DUNGEON_DB[VGT.GetMyGuildName()]) do
     local oldestTimestamp = currentTime
     local oldestGuid
     local killCount = 0
@@ -582,7 +585,7 @@ end
 
 VGT.PrintDungeonLeaderboard = function()
   local top = {}
-  for player, playerData in pairs(VGT_EPDB2[VGT.GetMyGuildName()]) do
+  for player, playerData in pairs(VGT_DUNGEON_DB[VGT.GetMyGuildName()]) do
     local player, killCount, totalKillCount, mostKilledBossName, mostKilledBossCount, mostKilledBossDungeonName = playerStatistics(player)
     table.insert(top, {player, killCount, mostKilledBossName, mostKilledBossCount})
   end
@@ -649,13 +652,13 @@ local initialized = false
 VGT.EP_Initialize = function()
   if (VGT.OPTIONS.EP.enabled) then
     if (not initialized) then
-      if (VGT_EPDB2 == nil) then
-        VGT_EPDB2 = {}
+      if (VGT_DUNGEON_DB == nil) then
+        VGT_DUNGEON_DB = {}
       end
       CleanDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey) CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey) end)
       cleaning = true
       PushDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey) PushDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey) end)
-      dbSnapshot = deepcopy(VGT_EPDB2)
+      dbSnapshot = deepcopy(VGT_DUNGEON_DB)
       synchronize = true
       VGT.LIBS:RegisterComm(MODULE_NAME, handleEPMessageReceivedEvent)
       initialized = true

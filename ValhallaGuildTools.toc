@@ -2,12 +2,12 @@
 ## X-Min-Interface: 11304
 ## Title: ValhallaGuildTools
 ## Notes: Valhalla Guild Tools
-## SavedVariables: VGT_OPTIONS, VGT_PROFESSIONS, VGT_REMINDERS
-## SavedVariablesPerCharacter: VGT_EPDB2, VGT_DB_TIMESTAMP
+## SavedVariables: VGT_OPTIONS
+## SavedVariablesPerCharacter: VGT_DUNGEON_DB, VGT_DB_TIMESTAMP
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: Bonkeybee
-## Version: 11304.64
+## Version: 11304.65
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
