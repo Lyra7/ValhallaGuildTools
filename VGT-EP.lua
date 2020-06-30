@@ -86,20 +86,9 @@ local validateRecord = function(guildName, timestamp, dungeonName, bossName, sen
   return false
 end
 
-local cleanRecord = function(guildName)
-  for player, playerData in pairs(VGT_DUNGEON_DB[guildName]) do
-    for guid, guidData in pairs(playerData) do
-      if (not validateRecord(guildName, guidData[1], guidData[2], guidData[3], nil)) then
-        VGT_DUNGEON_DB[guildName][player][guid] = nil
-        VGT.Log(VGT.LOG_LEVEL.DEBUG, "record %s:%s:%s removed for being invalid", guildName, player, guid)
-      end
-    end
-  end
-end
-
 function CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey)
   local guildName = VGT.GetMyGuildName()
-  if (guildName == nil or VGT_DUNGEON_DB[guildName] == nil or VGT.IsInRaid() or VGT.withinDays(VGT_DB_TIMESTAMP, 1)) then
+  if (guildName == nil or VGT_DUNGEON_DB[guildName] == nil or VGT.IsInRaid() or VGT.withinDays(VGT_DB_TIMESTAMP, 0)) then
     -- Stop the loop
     cleaning = false
     CleanDatabase:SetScript("OnUpdate", nil)
@@ -125,7 +114,7 @@ function CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKe
         VGT.Log(VGT.LOG_LEVEL.DEBUG, "CLEANING %s", self.currentPlayerKey)
         VGT_DUNGEON_DB[guildName][self.currentPlayerKey] = nil
       else
-        self.currentGuidKey, timestamp = next(VGT_DUNGEON_DB[guildName][self.currentPlayerKey], self.currentGuidKey)
+        self.currentGuidKey, data = next(VGT_DUNGEON_DB[guildName][self.currentPlayerKey], self.currentGuidKey)
       end
     else
       self.currentGuidKey = nil
@@ -135,7 +124,7 @@ function CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKe
       self.firstPlayerKey = self.currentPlayerKey
     end
     -- Check if data exists
-    if (timestamp and self.currentGuidKey) then
+    if (self.currentGuidKey) then
       local _, dungeonId, bossId = strsplit("-", self.currentGuidKey)
       dungeonId = tonumber(dungeonId)
       bossId = tonumber(bossId)
@@ -146,7 +135,7 @@ function CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKe
       end
 
       -- Check if data is valid
-      if (not dungeonData or not validateRecord(guildName, timestamp, dungeonData[1], VGT.bosses[bossId], nil)) then
+      if (not data or type(data) ~= "table" or not dungeonData or not validateRecord(guildName, data[1], dungeonData[1], VGT.bosses[bossId], nil)) then
         VGT.Log(VGT.LOG_LEVEL.DEBUG, "CLEANING %s", self.currentGuidKey)
         VGT_DUNGEON_DB[guildName][self.currentPlayerKey][self.currentGuidKey] = nil
         if (VGT.Count(VGT_DUNGEON_DB[guildName][self.currentPlayerKey]) == 0) then
@@ -186,13 +175,13 @@ function PushDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey
     -- Check if player exists
     if (self.currentPlayerKey ~= nil) then
       -- Get next data
-      self.currentGuidKey, timestamp = next(dbSnapshot[guildName][self.currentPlayerKey], self.currentGuidKey)
+      self.currentGuidKey, data = next(dbSnapshot[guildName][self.currentPlayerKey], self.currentGuidKey)
       -- Set the firstKeys
       if (self.firstPlayerKey == nil and self.currentGuidKey == nil) then
         self.firstPlayerKey = self.currentPlayerKey
       end
       -- Check if data exists
-      if (timestamp) then
+      if (data and type(data) == "table") then
         local _, dungeonId, bossId = strsplit("-", self.currentGuidKey)
         dungeonId = tonumber(dungeonId)
         bossId = tonumber(bossId)
@@ -202,10 +191,10 @@ function PushDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey
         if (not dungeonData and VGT.trackedRaids[dungeonId]) then
           dungeonData = VGT.raids[dungeonId]
         end
-        if (dungeonData and validateRecord(guildName, timestamp, dungeonData[1], VGT.bosses[bossId], nil)) then
+        if (dungeonData and validateRecord(guildName, data[1], dungeonData[1], VGT.bosses[bossId], nil)) then
           -- Send the data
           local key = format("%s:%s:%s", self.currentGuidKey, guildName, self.currentPlayerKey)
-          local message = format("%s;%s", key, timestamp)
+          local message = format("%s;%s", key, data[1])
           VGT.Log(VGT.LOG_LEVEL.TRACE, "sending %s to GUILD for %s:SYNCHRONIZATION_REQUEST.", message, MODULE_NAME)
           VGT.LIBS:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
         end
@@ -242,7 +231,7 @@ local handleUnitDeath = function(timestamp, creatureUID, dungeonId, dungeonName,
             VGT_DUNGEON_DB[guildName][players[i]] = {}
           end
           if (VGT_DUNGEON_DB[guildName][players[i]][creatureUID] == nil) then
-            VGT_DUNGEON_DB[guildName][players[i]][creatureUID] = timestamp
+            VGT_DUNGEON_DB[guildName][players[i]][creatureUID] = {timestamp}
           end
         end
       end
@@ -284,7 +273,8 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
 
   local event = strsplit(":", message)
   if (distribution == "GUILD") then
-    local key, timestamp = strsplit(";", message)
+    local key, value = strsplit(";", message)
+    local timestamp = tonumber(value)
     local creatureUID, guildName, groupedGuildiesStr = strsplit(":", key)
     local _, dungeonId, bossId = strsplit("-", creatureUID)
     local dungeonData = VGT.dungeons[tonumber(dungeonId)]
@@ -309,7 +299,7 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
             end
             if (VGT_DUNGEON_DB[guildName][players[i]][creatureUID] == nil) then
               VGT.Log(VGT.LOG_LEVEL.DEBUG, "saving record %s:%s:%s from %s.", guildName, players[i], creatureUID, sender)
-              VGT_DUNGEON_DB[guildName][players[i]][creatureUID] = timestamp
+              VGT_DUNGEON_DB[guildName][players[i]][creatureUID] = {timestamp}
             else
               VGT.Log(VGT.LOG_LEVEL.TRACE, "record %s:%s:%s from %s already exists.", guildName, players[i], creatureUID, sender)
             end
@@ -317,7 +307,7 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
         end
       end
     else
-      VGT.Log(VGT.LOG_LEVEL.TRACE, "record %s from %s is invalid to recieve.", value, sender)
+      VGT.Log(VGT.LOG_LEVEL.TRACE, "record %s from %s is invalid to recieve.", message, sender)
     end
   end
 end

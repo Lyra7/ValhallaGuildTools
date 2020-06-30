@@ -120,20 +120,17 @@ elseif (command == "help") then
   VGT.PrintHelp()
 elseif (command == "about") then
   VGT.PrintAbout()
-elseif (command == "loglevel") then
-  VGT.SetLogLevel(arg1)
 elseif (command == "dungeon") then
-  if (arg1 == "list" and arg2 == "players") then
-    VGT.PrintDungeonList(tonumber(arg3), false)
-  elseif (arg1 == "stats") then
-    VGT.PrintPlayerStatistics(arg2)
-  elseif (arg1 == "leaderboard") then
-    VGT.PrintDungeonLeaderboard()
-  else
-    VGT.Log(VGT.LOG_LEVEL.ERROR, "invalid command - type `/vgt help` for a list of commands")
-  end
-elseif (command == "douse") then
-  VGT.CheckForDouse()
+  print("these commands are temporarily disabled")
+  -- if (arg1 == "list" and arg2 == "players") then
+  --   VGT.PrintDungeonList(tonumber(arg3), false)
+  -- elseif (arg1 == "stats") then
+  --   VGT.PrintPlayerStatistics(arg2)
+  -- elseif (arg1 == "leaderboard") then
+  --   VGT.PrintDungeonLeaderboard()
+  -- else
+  --   VGT.Log(VGT.LOG_LEVEL.ERROR, "invalid command - type `/vgt help` for a list of commands")
+  -- end
 elseif (command == "pr") then
   VGT.PrintPR(arg1)
 elseif (command == "users") then
