@@ -126,17 +126,6 @@ function VGT.SubsetCount(a, b)
   return c
 end
 
-function VGT.StringAppend(...)
-  local args = {...}
-  local str = ""
-  for _, v in ipairs(args) do
-    if (v ~= nil) then
-      str = str..tostring(v)
-    end
-  end
-  return str
-end
-
 function VGT.TableJoinToArray(a, b)
   local nt = {}
   for _, v in pairs(a) do
@@ -372,7 +361,6 @@ local function onEvent(_, event)
 
   if (VGT.OPTIONS.enabled) then
     if (loaded and event == "ADDON_LOADED") then
-      VGT.Douse_Initialize()
       VGT.Map_Initialize()
       VGT.LIBS:RegisterComm(MODULE_NAME, handleCoreMessageReceivedEvent)
     end

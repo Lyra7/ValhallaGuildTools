@@ -96,21 +96,6 @@ local cleanRecord = function(guildName)
   end
 end
 
---TODO could be faster with cache
-local getGuildOnline = function(name)
-  local numTotalMembers = GetNumGuildMembers();
-  for i = 1, numTotalMembers do
-    local fullname, _, _, _, _, _, _, _, online = GetGuildRosterInfo(i);
-    if (fullname ~= nil) then
-      local memberName = strsplit("-", fullname);
-      if (name == memberName) then
-        return online;
-      end
-    end
-  end
-  return nil;
-end
-
 function CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey)
   local guildName = VGT.GetMyGuildName()
   if (guildName == nil or VGT_EPDB2[guildName] == nil or VGT.IsInRaid() or VGT.withinDays(VGT_DB_TIMESTAMP, 1)) then
@@ -175,11 +160,10 @@ function CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKe
   end
 end
 
--- TODO should only send data that doesnt match by player key instead of entire DB
 -- Send a snapshot of the EPDB
 function PushDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey)
   self.sinceLastUpdate = (self.sinceLastUpdate or 0) + sinceLastUpdate
-  if (synchronize and not cleaning and VGT.CommAvailability() > 50 and self.sinceLastUpdate >= 0.05 and IsInGuild() and getGuildOnline("Valhallax")) then
+  if (synchronize and not cleaning and VGT.CommAvailability() > 50 and self.sinceLastUpdate >= 0.05 and IsInGuild()) then
     local guildName = VGT.GetMyGuildName()
     if (not dbSnapshot or not dbSnapshot[guildName]) then
       return nil
@@ -219,10 +203,9 @@ function PushDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey
           -- Send the data
           --TODO send only guidkey + timestamp and pull dungeon and boss from the key
           local key = format("%s:%s:%s", self.currentGuidKey, guildName, self.currentPlayerKey)
-          local value = format("%s:%s:%s", timestamp, guidData[2], guidData[3])
-          local message = format("%s;%s", key, value)
+          local message = format("%s;%s", key, timestamp)
           VGT.Log(VGT.LOG_LEVEL.TRACE, "sending %s to GUILD for %s:SYNCHRONIZATION_REQUEST.", message, MODULE_NAME)
-          VGT.LIBS:SendCommMessage(MODULE_NAME, message, "WHISPER", "Valhallax", "BULK")
+          VGT.LIBS:SendCommMessage(MODULE_NAME, message, "GUILD", nil, "BULK")
         end
       else
         -- Get the next player data
@@ -233,8 +216,7 @@ function PushDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey
   end
 end
 
-local handleUnitDeath = function(creatureUID, dungeonId, dungeonName, bossId, bossName)
-  local timestamp = GetServerTime()
+local handleUnitDeath = function(timestamp, creatureUID, dungeonId, dungeonName, bossId, bossName)
   VGT.Log(VGT.LOG_LEVEL.TRACE, "killed %s in %s.", bossName, dungeonName)
   local guildName = GetGuildInfo("player")
   local groupedGuildies = VGT.CheckGroupForGuildies()
@@ -264,11 +246,10 @@ local handleUnitDeath = function(creatureUID, dungeonId, dungeonName, bossId, bo
       end
 
       local key = format("%s:%s:%s", creatureUID, guildName, groupedGuildiesStr)
-      local value = format("%s:%s:%s", timestamp, dungeonId, bossId)
-      local message = format("%s;%s", key, value)
+      local message = format("%s;%s", key, timestamp)
       VGT.Log(VGT.LOG_LEVEL.DEBUG, "saving %s and sending to guild.", message)
-      if (IsInGuild() and getGuildOnline("Valhallax")) then
-        VGT.LIBS:SendCommMessage(MODULE_NAME, message, "WHISPER", "Valhallax")
+      if (IsInGuild()) then
+        VGT.LIBS:SendCommMessage(MODULE_NAME, message, "GUILD", nil)
       end
     else
       VGT.Log(VGT.LOG_LEVEL.DEBUG, "skipping boss kill event because you are not in a group with any guild members of %s", guildName)
@@ -300,10 +281,10 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
   end
 
   local event = strsplit(":", message)
-  if (distribution == "WHISPER") then
-    local key, value = strsplit(";", message)
+  if (distribution == "GUILD") then
+    local key, timestamp = strsplit(";", message)
     local creatureUID, guildName, groupedGuildiesStr = strsplit(":", key)
-    local timestamp, dungeonId, bossId = strsplit(":", value)
+    local _, dungeonId, bossId = strsplit("-", creatureUID)
     local dungeonData = VGT.dungeons[tonumber(dungeonId)]
     if (not dungeonData and VGT.trackedRaids[tonumber(dungeonId)]) then
       dungeonData = VGT.raids[tonumber(dungeonId)]
@@ -644,21 +625,21 @@ end
 
 -- TODO make this local and make loaded vars global
 VGT.HandleCombatLogEvent = function()
-  local cTime, cEvent, _, _, _, _, _, cUID, _, _, _ = CombatLogGetCurrentEventInfo()
-  --TODO: possibly use cTime instead of GetServerTime(), if it's accurate across clients
-  local _, cTypeID, cInstanceUID, cInstanceID, cUnitUID, cUnitID, hex = strsplit("-", cUID)
+  local _, cEvent, _, _, _, _, _, cUID, _, _, _ = CombatLogGetCurrentEventInfo()
+  local timestamp = GetServerTime()
+  local _, _, _, cInstanceID, _, cUnitID, spawnUID = strsplit("-", cUID)
   if (cEvent == "UNIT_DIED") then
-    local creatureUID = VGT.StringAppend(cTypeID, cInstanceUID, cInstanceID, cUnitUID, cUnitID, hex)
+    local creatureUID = spawnUID.."-"..cInstanceID.."-"..cUnitID
     VGT.Log(VGT.LOG_LEVEL.TRACE, "killed %s in %s.", creatureUID, cInstanceID)
     local dungeonData = VGT.dungeons[tonumber(cInstanceID)]
     if (not dungeonData and VGT.trackedRaids[tonumber(cInstanceID)]) then
       dungeonData = VGT.raids[tonumber(cInstanceID)]
     end
-    if (dungeonData ~= nil) then
+    if (dungeonData) then
       local dungeonName = dungeonData[1]
       local bossName = VGT.bosses[tonumber(cUnitID)]
-      if (creatureUID ~= nil and dungeonName ~= nil and bossName ~= nil) then
-        handleUnitDeath(creatureUID, tonumber(cInstanceID), dungeonName, tonumber(cUnitID), bossName)
+      if (creatureUID and dungeonName and bossName) then
+        handleUnitDeath(timestamp, creatureUID, tonumber(cInstanceID), dungeonName, tonumber(cUnitID), bossName)
       end
     end
   end
@@ -674,10 +655,8 @@ VGT.EP_Initialize = function()
       CleanDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey) CleanDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey) end)
       cleaning = true
       PushDatabase:SetScript("OnUpdate", function(self, sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey) PushDatabase:onUpdate(sinceLastUpdate, firstPlayerKey, currentPlayerKey, currentGuidKey) end)
-      if (UnitName("player") ~= "Valhallax") then
-        dbSnapshot = deepcopy(VGT_EPDB2)
-        synchronize = true
-      end
+      dbSnapshot = deepcopy(VGT_EPDB2)
+      synchronize = true
       VGT.LIBS:RegisterComm(MODULE_NAME, handleEPMessageReceivedEvent)
       initialized = true
     end

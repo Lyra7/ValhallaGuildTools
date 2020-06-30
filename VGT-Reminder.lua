@@ -30,72 +30,35 @@ end
 
 local function onEvent(_, event, arg1, arg2)
   if (event == "ADDON_LOADED") then
-    if (not VGT_REMINDERS) then
-      VGT_REMINDERS = {}
-    end
-  elseif (event == "GUILD_ROSTER_UPDATE") then
-    local active = false
-    local guildInfo = GetGuildInfoText()
-    for charnamex in gmatch(guildInfo, 'VGTx:('..UnitName("player")..')') do
-      active = true
-      for name, rosterInfo in pairs(VGT.GuildCache()) do
-        if (not VGT_REMINDERS[name] or type(VGT_REMINDERS[name]) ~= "table") then
-          VGT_REMINDERS[name] = {}
-        end
-        if (not VGT_REMINDERS[name][2] and (not VGT_REMINDERS[name][1] or not VGT.withinDays(VGT_REMINDERS[name][1], 1))) then
-          local level = rosterInfo[2][1]
-          local killCount = (VGT.getBossCountForPlayer(VGT.GetMyGuildName(), name, false) or 0)
-          local isDungeonEligible = isDungeonEligible(level, killCount)
-          local raidKillCount = (VGT.getBossCountForPlayer(VGT.GetMyGuildName(), name, true) or 0)
-          local isRaidEligible = isRaidEligible(level, raidKillCount)
-          if (rosterInfo[5][1] and rosterInfo[5][2] == 0) then
-            if (isDungeonEligible or isRaidEligible) then
-              local message = "(AUTOMATED) Hello "..name..", this is a daily reminder that you can still "
-              if (isDungeonEligible) then
-                VGT_REMINDERS[name][1] = GetServerTime()
-                message = message.."kill "..MAX_DUNGEON_KILL - killCount.." more dungeon bosses "
-              end
-              if (isDungeonEligible and isRaidEligible) then
-                message = message.."and "
-              end
-              if (isRaidEligible) then
-                VGT_REMINDERS[name][1] = GetServerTime()
-                message = message.."kill "..MAX_RAID_KILL - raidKillCount.." more 20-man raid bosses "
-              end
-              message = message.."with guild-members for bonus EP this week. Have a nice day!"
-              message = message.."Respond with 'stop' to never see this message again."
-              SendChatMessage(message, "WHISPER", nil, name)
-            end
-          end
-        end
-      end
-    end
-    if (guildInfo and guildInfo ~= "" and not active) then
-      REMINDERFRAME:UnregisterAllEvents()
-    end
-  elseif (event == "CHAT_MSG_WHISPER") then
-    if (arg2) then
-      local name = strsplit("-", arg2)
-      if (VGT.GuildCache(name)) then
-        if (arg1) then
-          local command = strlower(arg1)
-          if (command == "stop" or command == "'stop'") then
-            VGT_REMINDERS[name][2] = true
-            local message = "(AUTOMATED) You have unsubscribed from all <Valhalla> reminders. Respond with 'remindme' to resubscribe."
-            SendChatMessage(message, "WHISPER", nil, name)
-          elseif (command == "remindme" or command == "'remindme'") then
-            VGT_REMINDERS[name][2] = false
-            local message = "(AUTOMATED) You have subscribed to <Valhalla> reminders."
-            SendChatMessage(message, "WHISPER", nil, name)
-          end
-        end
-      end
-    end
+    -- if (not VGT_REMINDERS[name][2] and (not VGT_REMINDERS[name][1] or not VGT.withinDays(VGT_REMINDERS[name][1], 1))) then
+    --   local level = rosterInfo[2][1]
+    --   local killCount = (VGT.getBossCountForPlayer(VGT.GetMyGuildName(), name, false) or 0)
+    --   local isDungeonEligible = isDungeonEligible(level, killCount)
+    --   local raidKillCount = (VGT.getBossCountForPlayer(VGT.GetMyGuildName(), name, true) or 0)
+    --   local isRaidEligible = isRaidEligible(level, raidKillCount)
+    --   if (rosterInfo[5][1] and rosterInfo[5][2] == 0) then
+    --     if (isDungeonEligible or isRaidEligible) then
+    --       local message = "(AUTOMATED) Hello "..name..", this is a daily reminder that you can still "
+    --       if (isDungeonEligible) then
+    --         VGT_REMINDERS[name][1] = GetServerTime()
+    --         message = message.."kill "..MAX_DUNGEON_KILL - killCount.." more dungeon bosses "
+    --       end
+    --       if (isDungeonEligible and isRaidEligible) then
+    --         message = message.."and "
+    --       end
+    --       if (isRaidEligible) then
+    --         VGT_REMINDERS[name][1] = GetServerTime()
+    --         message = message.."kill "..MAX_RAID_KILL - raidKillCount.." more 20-man raid bosses "
+    --       end
+    --       message = message.."with guild-members for bonus EP this week. Have a nice day!"
+    --       message = message.."Respond with 'stop' to never see this message again."
+    --       SendChatMessage(message, "WHISPER", nil, name)
+    --     end
+    --   end
+    -- end
   end
 end
 
 REMINDERFRAME:RegisterEvent("ADDON_LOADED")
-REMINDERFRAME:RegisterEvent("GUILD_ROSTER_UPDATE")
-REMINDERFRAME:RegisterEvent("CHAT_MSG_WHISPER")
 REMINDERFRAME:SetScript("OnEvent", onEvent)
 GuildRoster()
