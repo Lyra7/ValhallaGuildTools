@@ -1,5 +1,5 @@
-## Interface: 11304
-## X-Min-Interface: 11304
+## Interface: 11305
+## X-Min-Interface: 11305
 ## Title: ValhallaGuildTools
 ## Notes: Valhalla Guild Tools
 ## SavedVariables: VGT_OPTIONS
@@ -7,7 +7,7 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: Bonkeybee
-## Version: 11304.65
+## Version: 11304.66
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
