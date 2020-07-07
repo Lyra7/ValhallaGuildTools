@@ -277,13 +277,15 @@ local handleEPMessageReceivedEvent = function(prefix, message, distribution, sen
     local timestamp = tonumber(value)
     local creatureUID, guildName, groupedGuildiesStr = strsplit(":", key)
     local _, dungeonId, bossId = strsplit("-", creatureUID)
-    local dungeonData = VGT.dungeons[tonumber(dungeonId)]
-    if (not dungeonData and VGT.trackedRaids[tonumber(dungeonId)]) then
-      dungeonData = VGT.raids[tonumber(dungeonId)]
+    dungeonId = tonumber(dungeonId)
+    bossId = tonumber(bossId)
+    local dungeonData = VGT.dungeons[dungeonId]
+    if (not dungeonData and VGT.trackedRaids[dungeonId]) then
+      dungeonData = VGT.raids[dungeonId]
     end
     if (dungeonData ~= nil) then
       local dungeonName = dungeonData[1]
-      local bossName = VGT.bosses[tonumber(bossId)]
+      local bossName = VGT.bosses[bossId]
       if (validateRecord(guildName, timestamp, dungeonName, bossName, sender)) then
         if (VGT_DUNGEON_DB == nil) then
           VGT_DUNGEON_DB = {}
@@ -404,9 +406,10 @@ VGT.rewardEP = function(test)
       local oldestGuid
       local killCount = 0
       for guid, guidData in pairs(playerData) do
+        local _, dungeonId, _ = strsplit("-", guid)
+        dungeonId = tonumber(dungeonId)
         local timestamp = tonumber(guidData[1])
-        local rewarded = guidData[4]
-        local dungeonId = guidData[2]
+        local rewarded = guidData[2]
         if (VGT.withinDays(timestamp, MAX_TIME_TO_KEEP) and not rewarded and not VGT.trackedRaids[dungeonId]) then
           killCount = killCount + 1
           if (timestamp < oldestTimestamp) then
@@ -418,7 +421,7 @@ VGT.rewardEP = function(test)
       if (oldestGuid ~= nil and guildTable[player]) then
         local guidData = playerData[oldestGuid]
         if (not test and not audit[player]) then
-          playerData[oldestGuid] = {guidData[1], guidData[2], guidData[3], true}
+          playerData[oldestGuid] = {guidData[1], true}
         end
         if (players[player]) then
           players[player] = players[player] + 1
@@ -430,7 +433,7 @@ VGT.rewardEP = function(test)
   end
 
   local _, _, guildRankIndex = GetGuildInfo("player");
-  if (guildRankIndex == 1) then
+  if (guildRankIndex == 0) then
     for player, count in pairs(players) do
       local i = guildTable[player][1]
       local officernote = guildTable[player][2]
@@ -474,9 +477,10 @@ VGT.rewardRaidEP = function(test)
     local oldestGuid
     local killCount = 0
     for guid, guidData in pairs(playerData) do
+      local _, dungeonId, _ = strsplit("-", guid)
+      dungeonId = tonumber(dungeonId)
       local timestamp = tonumber(guidData[1])
-      local dungeonId = tonumber(guidData[2])
-      local rewarded = guidData[4]
+      local rewarded = guidData[2]
       if (VGT.withinDays(timestamp, MAX_TIME_TO_KEEP_RAID) and not rewarded and VGT.trackedRaids[dungeonId]) then
         killCount = killCount + 1
         if (timestamp < oldestTimestamp) then
@@ -488,7 +492,7 @@ VGT.rewardRaidEP = function(test)
     if (oldestGuid ~= nil and guildTable[player]) then
       local guidData = playerData[oldestGuid]
       if (not test and not audit[player]) then
-        playerData[oldestGuid] = {guidData[1], guidData[2], guidData[3], true}
+        playerData[oldestGuid] = {guidData[1], true}
       end
       if (not players[player]) then
         players[player] = 1
@@ -497,7 +501,7 @@ VGT.rewardRaidEP = function(test)
   end
 
   local _, _, guildRankIndex = GetGuildInfo("player");
-  if (guildRankIndex == 1) then
+  if (guildRankIndex == 0) then
     for player, count in pairs(players) do
       local i = guildTable[player][1]
       local officernote = guildTable[player][2]
@@ -620,18 +624,20 @@ VGT.HandleCombatLogEvent = function()
   local _, cEvent, _, _, _, _, _, cUID, _, _, _ = CombatLogGetCurrentEventInfo()
   local timestamp = GetServerTime()
   local _, _, _, cInstanceID, _, cUnitID, spawnUID = strsplit("-", cUID)
+  cInstanceID = tonumber(cInstanceID)
+  cUnitID = tonumber(cUnitID)
   if (cEvent == "UNIT_DIED") then
     local creatureUID = spawnUID.."-"..cInstanceID.."-"..cUnitID
     VGT.Log(VGT.LOG_LEVEL.TRACE, "killed %s in %s.", creatureUID, cInstanceID)
-    local dungeonData = VGT.dungeons[tonumber(cInstanceID)]
-    if (not dungeonData and VGT.trackedRaids[tonumber(cInstanceID)]) then
-      dungeonData = VGT.raids[tonumber(cInstanceID)]
+    local dungeonData = VGT.dungeons[cInstanceID]
+    if (not dungeonData and VGT.trackedRaids[cInstanceID]) then
+      dungeonData = VGT.raids[cInstanceID]
     end
     if (dungeonData) then
       local dungeonName = dungeonData[1]
-      local bossName = VGT.bosses[tonumber(cUnitID)]
+      local bossName = VGT.bosses[cUnitID]
       if (creatureUID and dungeonName and bossName) then
-        handleUnitDeath(timestamp, creatureUID, tonumber(cInstanceID), dungeonName, tonumber(cUnitID), bossName)
+        handleUnitDeath(timestamp, creatureUID, cInstanceID, dungeonName, cUnitID, bossName)
       end
     end
   end
