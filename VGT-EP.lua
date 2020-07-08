@@ -623,21 +623,23 @@ end
 VGT.HandleCombatLogEvent = function()
   local _, cEvent, _, _, _, _, _, cUID, _, _, _ = CombatLogGetCurrentEventInfo()
   local timestamp = GetServerTime()
-  local _, _, _, cInstanceID, _, cUnitID, spawnUID = strsplit("-", cUID)
-  cInstanceID = tonumber(cInstanceID)
-  cUnitID = tonumber(cUnitID)
-  if (cEvent == "UNIT_DIED") then
-    local creatureUID = spawnUID.."-"..cInstanceID.."-"..cUnitID
-    VGT.Log(VGT.LOG_LEVEL.TRACE, "killed %s in %s.", creatureUID, cInstanceID)
-    local dungeonData = VGT.dungeons[cInstanceID]
-    if (not dungeonData and VGT.trackedRaids[cInstanceID]) then
-      dungeonData = VGT.raids[cInstanceID]
-    end
-    if (dungeonData) then
-      local dungeonName = dungeonData[1]
-      local bossName = VGT.bosses[cUnitID]
-      if (creatureUID and dungeonName and bossName) then
-        handleUnitDeath(timestamp, creatureUID, cInstanceID, dungeonName, cUnitID, bossName)
+  local type, _, _, cInstanceID, _, cUnitID, spawnUID = strsplit("-", cUID)
+  if (type == "Creature") then
+    cInstanceID = tonumber(cInstanceID)
+    cUnitID = tonumber(cUnitID)
+    if (cEvent == "UNIT_DIED") then
+      local creatureUID = spawnUID.."-"..cInstanceID.."-"..cUnitID
+      VGT.Log(VGT.LOG_LEVEL.TRACE, "killed %s in %s.", creatureUID, cInstanceID)
+      local dungeonData = VGT.dungeons[cInstanceID]
+      if (not dungeonData and VGT.trackedRaids[cInstanceID]) then
+        dungeonData = VGT.raids[cInstanceID]
+      end
+      if (dungeonData) then
+        local dungeonName = dungeonData[1]
+        local bossName = VGT.bosses[cUnitID]
+        if (creatureUID and dungeonName and bossName) then
+          handleUnitDeath(timestamp, creatureUID, cInstanceID, dungeonName, cUnitID, bossName)
+        end
       end
     end
   end
